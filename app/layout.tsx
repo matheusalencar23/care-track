@@ -3,7 +3,7 @@ import "./globals.css";
 import { inter } from "./ui/fonts";
 
 export const metadata: Metadata = {
-  title: "Care Track",
+  title: "CareTrack",
   description: "Aplicação para acompanhamento de pacientes",
 };
 

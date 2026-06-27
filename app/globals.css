@@ -1,12 +1,83 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-blue-500: #1678E6;
-  --color-blue-600: #0A63D8;
-  --color-blue-700: #0853B5;
-  --color-teal-400: #36D8C7;
-  --color-teal-500: #14C8C2;
-  --color-teal-600: #0FB6B0;
-  --color-gray-900: #1F2937;
-  --background: #F8FAFC;
+  /* Brand Blue */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #1678e6;
+  --color-blue-600: #0a63d8;
+  --color-blue-700: #0853b5;
+  --color-blue-800: #064a99;
+  --color-blue-900: #04356f;
+
+  /* Brand Teal */
+  --color-teal-50: #ecfefc;
+  --color-teal-100: #cffaf7;
+  --color-teal-200: #a7f3ee;
+  --color-teal-300: #6ee7df;
+  --color-teal-400: #36d8c7;
+  --color-teal-500: #14c8c2;
+  --color-teal-600: #0fb6b0;
+  --color-teal-700: #0b928e;
+  --color-teal-800: #08706d;
+  --color-teal-900: #054f4d;
+
+  /* Neutral */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+
+  /* Success */
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+
+  /* Warning */
+  --color-warning-400: #facc15;
+  --color-warning-500: #eab308;
+  --color-warning-600: #ca8a04;
+
+  /* Error */
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+
+  /* Backgrounds */
+  --background: #f8fafc;
+  --background-dark: #0f172a;
+  --background-darker: #020617;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-secondary: #f1f5f9;
+  --surface-dark: rgba(255, 255, 255, 0.08);
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-dark: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --foreground: #1e293b;
+  --foreground-secondary: #64748b;
+  --foreground-inverse: #ffffff;
+
+  /* Brand Gradient */
+  --gradient-primary: linear-gradient(
+    135deg,
+    #0a63d8 0%,
+    #1678e6 35%,
+    #14c8c2 70%,
+    #0fb6b0 100%
+  );
 }
