@@ -4,12 +4,9 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950">
+    <main>
       {/* Background */}
-      <div className="absolute inset-0 bg-linear-to-br from-blue-900 via-blue-800 to-teal-700" />
-
-      <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-      <div className="absolute right-0 top-0 h-125 w-125 rounded-full bg-teal-400/20 blur-3xl" />
+      
 
       {/* Content */}
       <section className="relative mx-auto flex min-h-screen max-w-7xl items-center p-6">

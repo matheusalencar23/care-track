@@ -1,19 +1,13 @@
 import Image from "next/image";
 import logo from "../../public/logo.png";
 import LoginForm from "./components/loginForm";
+import Card from "../ui/card";
+import Link from "next/link";
 
 export default function Login() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-6">
-      {/* Background */}
-      <div className="absolute inset-0 bg-linear-to-br from-blue-900 via-blue-800 to-teal-700" />
-
-      <div className="absolute left-0 top-0 h-112.5 w-112.5 rounded-full bg-white/10 blur-3xl" />
-      <div className="absolute bottom-0 right-0 h-125 w-125 rounded-full bg-teal-400/20 blur-3xl" />
-
-      {/* Card */}
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-2xl">
-        {/* Logo */}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+      <Card>
         <div className="mb-6 flex flex-col items-center">
           <Image src={logo} alt="Logo" className="w-50 mb-2" loading="eager" />
 
@@ -22,7 +16,7 @@ export default function Login() {
           </h1>
 
           <p className="mt-2 text-center text-sm text-slate-200">
-            Faça login para acessar sua plataforma
+            Faça login para acessar a plataforma
           </p>
         </div>
 
@@ -51,14 +45,14 @@ export default function Login() {
         {/* TODO: Implementar o fluxo de criação de conta */}
         <p className="mt-4 text-center text-sm text-slate-200">
           Ainda não possui uma conta?
-          <a
-            href="/register"
+          <Link
+            href="/signup"
             className="ml-1 font-semibold text-white hover:text-teal-300"
           >
             Criar conta
-          </a>
+          </Link>
         </p>
-      </div>
+      </Card>
     </main>
   );
 }

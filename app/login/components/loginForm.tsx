@@ -2,7 +2,9 @@
 
 import { useLogin } from "@/hooks/useLogin";
 import { loginSchema } from "@/schemas/loginSchema";
+import { loginRequest } from "@/services/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
@@ -17,11 +19,12 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const { login } = useLogin();
+  const router = useRouter();
 
   async function onSubmit(data: LoginData) {
     try {
-      await login(data);
+      await loginRequest(data);
+      router.push("/dashboard");
     } catch (err) {
       console.error("Erro no login: ", err);
     }
