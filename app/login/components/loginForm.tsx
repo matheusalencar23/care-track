@@ -1,11 +1,12 @@
 "use client";
 
-import { useLogin } from "@/hooks/useLogin";
 import { loginSchema } from "@/schemas/loginSchema";
-import { loginRequest } from "@/services/auth";
+import { loginRequest } from "@/services/auth.service";
+import { ApiError } from "@/shared/ApiError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 import z from "zod";
 
 type LoginData = z.infer<typeof loginSchema>;
@@ -26,7 +27,12 @@ export default function LoginForm() {
       await loginRequest(data);
       router.push("/dashboard");
     } catch (err) {
-      console.error("Erro no login: ", err);
+      if (err instanceof ApiError) {
+        toast.error(err.message);
+        return;
+      }
+
+      toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
     }
   }
 

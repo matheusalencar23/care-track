@@ -1,13 +1,19 @@
 "use client";
 
 import Button from "@/app/ui/button";
-import { signupSchema } from "@/schemas/signupSchema";
-import { signupRequest } from "@/services/auth";
+import { signupRequest } from "@/services/auth.service";
 import { ApiError } from "@/shared/ApiError";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import z from "zod";
+
+const signupSchema = z.object({
+  name: z.string().min(2, "Nome muito curto"),
+  email: z.email("Email inválido"),
+  password: z.string().min(8, "Senha muito curta"),
+});
 
 type RegisterData = z.infer<typeof signupSchema>;
 
@@ -15,22 +21,25 @@ export default function RegisterForm() {
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<RegisterData>({
     resolver: zodResolver(signupSchema),
   });
 
+  const router = useRouter();
+
   async function onSubmit(data: RegisterData) {
     try {
       await signupRequest(data);
-      toast.success("Usuário cadastrado com sucesso!")
-      reset();
+      toast.success("Usuário cadastrado com sucesso!");
+      router.push("/login");
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
+        return;
       }
-      console.error("Erro ao realizar cadastro: ", err);
+
+      toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
     }
   }
 

@@ -1,6 +1,59 @@
 export default function Dashboard() {
   return (
-    <main>
+    <main className="absolute z-1 h-screen w-screen overflow-auto">
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
+      <h1>DASHBOARD</h1>
       <h1>DASHBOARD</h1>
     </main>
   );
