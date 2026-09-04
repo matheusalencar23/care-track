@@ -1,39 +1,33 @@
 "use client";
 
-import { loginSchema } from "@/schemas/loginSchema";
-import { loginRequest } from "@/services/auth.service";
-import { ApiError } from "@/shared/ApiError";
+import { useLogin } from "@/hooks/auth/useLogin";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { toast } from "react-toastify";
 import z from "zod";
 
-type LoginData = z.infer<typeof loginSchema>;
+const schema = z.object({
+  email: z.email("Email inválido"),
+  password: z.string().min(8, "Senha muito curta"),
+});
 
-export default function LoginForm() {
+type LoginData = z.infer<typeof schema>;
+
+interface Props {
+  toggleModal: () => void;
+}
+
+export default function LoginForm({ toggleModal }: Props) {
+  const { login, isPending } = useLogin();
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
   });
 
-  const router = useRouter();
-
   async function onSubmit(data: LoginData) {
-    try {
-      await loginRequest(data);
-      router.push("/dashboard");
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-        return;
-      }
-
-      toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
-    }
+    await login(data);
   }
 
   return (
@@ -57,8 +51,12 @@ export default function LoginForm() {
           <label className="text-sm text-white">Senha</label>
 
           {/* TODO: Implementar o fluxo de recuperação de senha */}
-          <a href="#" className="text-sm text-white hover:hover:text-teal-300">
-            Esqueceu?
+          <a
+            href="#"
+            className="text-sm text-white hover:hover:text-teal-300"
+            onClick={toggleModal}
+          >
+            Esqueceu sua senha?
           </a>
         </div>
 
@@ -74,7 +72,7 @@ export default function LoginForm() {
       </div>
 
       <button className="mt-4 w-full rounded-xl bg-white py-3 font-semibold text-blue-700 transition hover:scale-[1.02]">
-        {isSubmitting ? "Entrando..." : "Entrar"}
+        {isPending ? "Entrando..." : "Entrar"}
       </button>
     </form>
   );

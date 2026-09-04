@@ -1,33 +1,26 @@
 import { api } from "@/lib/api";
-import { ApiError } from "@/shared/ApiError";
+import { User } from "@/model/user";
 
-export async function validateSession(cookieHeader: string) {
-  try {
-    return await api.get("/v1/auth/me", {
-      headers: {
-        ...(cookieHeader && { Cookie: cookieHeader }),
-      },
-    });
-  } catch (err: unknown) {
-    if (
-      err instanceof ApiError &&
-      (err.statusCode === 401 || err.statusCode === 403)
-    ) {
-      return null;
-    }
-
-    throw err;
-  }
+export async function getCurrentUser(): Promise<User> {
+  const response = await api.get("/auth/me");
+  return response.data;
 }
 
-export function loginRequest(data: { email: string; password: string }) {
-  return api.post("/v1/auth/signin", data);
+export async function login(data: { email: string; password: string }) {
+  const response = await api.post("/auth/signin", data);
+  return response.data;
 }
 
-export function signupRequest(data: {
+export async function logout() {
+  const response = await api.post("/auth/signout", {});
+  return response.data;
+}
+
+export async function signup(data: {
   name: string;
   email: string;
   password: string;
 }) {
-  return api.post("/v1/users/signup", data);
+  const response = await api.post("/users/signup", data);
+  return response.data;
 }

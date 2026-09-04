@@ -1,21 +1,36 @@
+"use client";
+
 import LoginForm from "./components/loginForm";
 import Link from "next/link";
 import ExternalLayout from "../ui/components/external-layout";
+import ReactModal from "react-modal";
+import { useEffect, useState } from "react";
 
 export default function Login() {
-  return (
-    <ExternalLayout title="Faça login para acessar a plataforma">
-      <LoginForm />
+  const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
 
-      {/* Divider - Adicionar quando implementar o login via google */}
-      {/* <div className="my-6 flex items-center">
+  useEffect(() => {
+    ReactModal.setAppElement("main");
+  }, []);
+
+  function toggleModal() {
+    setModalIsOpen((value) => !value);
+  }
+
+  return (
+    <>
+      <ExternalLayout title="Faça login para acessar a plataforma">
+        <LoginForm toggleModal={toggleModal} />
+
+        {/* Divider - Adicionar quando implementar o login via google */}
+        {/* <div className="my-6 flex items-center">
           <div className="h-px flex-1 bg-white/20" />
           <span className="px-4 text-sm text-slate-300">ou</span>
           <div className="h-px flex-1 bg-white/20" />
         </div> */}
 
-      {/* Google - TODO: Implementar autenticação com google */}
-      {/* <button className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/10 py-3 text-white transition hover:bg-white/20">
+        {/* Google - TODO: Implementar autenticação com google */}
+        {/* <button className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/10 py-3 text-white transition hover:bg-white/20">
           <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
             <path
               fill="#FFC107"
@@ -25,17 +40,36 @@ export default function Login() {
           Entrar com Google
         </button> */}
 
-      {/* Footer */}
-      {/* TODO: Implementar o fluxo de criação de conta */}
-      <p className="mt-4 text-center text-sm text-slate-200">
-        Ainda não possui uma conta?
-        <Link
-          href="/signup"
-          className="ml-1 font-semibold text-white hover:text-teal-300"
-        >
-          Criar conta
-        </Link>
-      </p>
-    </ExternalLayout>
+        {/* Footer */}
+        {/* TODO: Implementar o fluxo de criação de conta */}
+        <p className="mt-4 text-center text-sm text-slate-200">
+          Ainda não possui uma conta?
+          <Link
+            href="/signup"
+            className="ml-1 font-semibold text-white hover:text-teal-300"
+          >
+            Criar conta
+          </Link>
+        </p>
+      </ExternalLayout>
+      <ReactModal
+        isOpen={modalIsOpen}
+        style={{
+          content: {
+            top: "50%",
+            left: "50%",
+            right: "auto",
+            bottom: "auto",
+            marginRight: "-50%",
+            transform: "translate(-50%, -50%)",
+          },
+          overlay: {
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+          },
+        }}
+      >
+        <p>TESTE</p>
+      </ReactModal>
+    </>
   );
 }

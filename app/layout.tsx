@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { inter } from "./ui/fonts";
-import { ToastContainer } from "react-toastify";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "CareTrack",
@@ -16,11 +16,12 @@ export default function RootLayout({
   return (
     <html lang="pt" className={`${inter.className}`}>
       <body className="relative min-h-screen overflow-hidden bg-slate-950">
-        <div className="absolute inset-0 bg-linear-to-br from-blue-900 via-blue-800 to-teal-700" />
-        <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute right-0 top-0 h-125 w-125 rounded-full bg-teal-400/20 blur-3xl" />
-        {children}
-        <ToastContainer />
+        <Providers>
+          <div className="absolute inset-0 bg-linear-to-br from-blue-900 via-blue-800 to-teal-700" />
+          <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute right-0 top-0 h-125 w-125 rounded-full bg-teal-400/20 blur-3xl" />
+          {children}
+        </Providers>
       </body>
     </html>
   );
