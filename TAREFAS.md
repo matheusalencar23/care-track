@@ -52,7 +52,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - Remover `localStorage.clear()` do interceptor (app não usa localStorage; apaga dados de outros scripts do domínio).
   - Configurar `retry` no `QueryClient` (`app/providers.tsx`) para não repetir erros 4xx.
 
-- [ ] **11. Validar `NEXT_PUBLIC_API_URL`**
+- [x] **11. Validar `NEXT_PUBLIC_API_URL`**
   - `settings.ts`: lançar erro claro se a variável não estiver definida (hoje o axios usa URL relativa silenciosamente).
 
 ## 🟢 Detalhes
