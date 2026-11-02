@@ -13,7 +13,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - Os chamadores (`onSubmit` nos forms, `logout` em `app/(authenticated)/layout.tsx`) fazem `await` sem `catch` → erro não tratado / overlay do Next em dev.
   - Não relançar o erro e/ou usar `mutate` em vez de `mutateAsync`.
 
-- [ ] **3. Corrigir o modal "Esqueceu sua senha?"**
+- [x] **3. Corrigir o modal "Esqueceu sua senha?"**
   - `app/login/page.tsx`: o `ReactModal` mostra "TESTE" e não tem `onRequestClose` nem botão de fechar (usuário fica preso).
   - O link `<a href="#">` em `loginForm.tsx` não faz `preventDefault`.
   - Esconder o link até o fluxo existir, ou adicionar o fechamento.

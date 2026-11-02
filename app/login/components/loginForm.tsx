@@ -51,13 +51,13 @@ export default function LoginForm({ toggleModal }: Props) {
           <label className="text-sm text-white">Senha</label>
 
           {/* TODO: Implementar o fluxo de recuperação de senha */}
-          <a
-            href="#"
-            className="text-sm text-white hover:hover:text-teal-300"
+          <button
+            type="button"
+            className="cursor-pointer text-sm text-white hover:text-teal-300"
             onClick={toggleModal}
           >
             Esqueceu sua senha?
-          </a>
+          </button>
         </div>
 
         <input
