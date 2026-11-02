@@ -2,10 +2,9 @@
 
 import { queryKeys } from "@/lib/query-keys";
 import { login } from "@/services/auth.service";
-import { ApiError } from "@/shared/ApiError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
+import { notifyError } from "@/lib/notify-error";
 
 export function useLogin() {
   const router = useRouter();
@@ -20,14 +19,7 @@ export function useLogin() {
 
       router.push("/dashboard");
     },
-    onError: (err) => {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-        return;
-      }
-
-      toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
-    },
+    onError: notifyError,
   });
 
   return {

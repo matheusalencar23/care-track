@@ -1,7 +1,6 @@
 import { useRouter } from "next/navigation";
 import * as authService from "@/services/auth.service";
-import { ApiError } from "@/shared/ApiError";
-import { toast } from "react-toastify";
+import { notifyError } from "@/lib/notify-error";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function useLogout() {
@@ -14,11 +13,7 @@ export function useLogout() {
       queryClient.clear();
       router.push("/login");
     } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
-      }
+      notifyError(err);
     }
   }
 

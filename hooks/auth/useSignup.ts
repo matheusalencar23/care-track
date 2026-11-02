@@ -1,5 +1,5 @@
 import * as authService from "@/services/auth.service";
-import { ApiError } from "@/shared/ApiError";
+import { notifyError } from "@/lib/notify-error";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
@@ -16,11 +16,7 @@ export function useSignup() {
       toast.success("Usuário cadastrado com sucesso!");
       router.push("/login");
     } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
-      }
+      notifyError(err);
     }
   }
 

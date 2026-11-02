@@ -35,11 +35,18 @@ api.interceptors.response.use(
         }
       }
 
+      // Sem resposta: servidor fora do ar, sem internet, CORS, timeout etc.
+      if (!error.response) {
+        throw new ApiError(
+          "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+        );
+      }
+
       const message =
-        error.response?.data?.message ??
+        error.response.data?.message ??
         "Ocorreu um erro inesperado. Por favor, entre em contato com o suporte.";
 
-      throw new ApiError(message, error.response?.status);
+      throw new ApiError(message, error.response.status);
     }
 
     throw error;
