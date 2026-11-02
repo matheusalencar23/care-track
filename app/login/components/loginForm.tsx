@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "@/app/ui/button";
+import Input from "@/app/ui/input";
 import { useLogin } from "@/hooks/auth/useLogin";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -32,26 +33,24 @@ export default function LoginForm({ toggleModal }: Props) {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-      <div>
-        <label className="mb-2 block text-sm text-white">E-mail</label>
+    <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <Input
+        label="E-mail"
+        type="email"
+        autoComplete="email"
+        placeholder="Digite seu email"
+        error={errors.email?.message}
+        {...register("email")}
+      />
 
-        <input
-          type="text"
-          placeholder="Digite seu email"
-          {...register("email")}
-          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-slate-300 outline-none transition focus:border-white focus:ring-2 focus:ring-white/30"
-        />
-        {errors.email && (
-          <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
-        )}
-      </div>
-
-      <div>
-        <div className="mb-2 flex justify-between">
-          <label className="text-sm text-white">Senha</label>
-
-          {/* TODO: Implementar o fluxo de recuperação de senha */}
+      <Input
+        label="Senha"
+        type="password"
+        autoComplete="current-password"
+        placeholder="Digite sua senha"
+        error={errors.password?.message}
+        labelAction={
+          // TODO: Implementar o fluxo de recuperação de senha
           <button
             type="button"
             className="cursor-pointer text-sm text-white hover:text-teal-300"
@@ -59,18 +58,9 @@ export default function LoginForm({ toggleModal }: Props) {
           >
             Esqueceu sua senha?
           </button>
-        </div>
-
-        <input
-          type="password"
-          placeholder="Digite sua senha"
-          {...register("password")}
-          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-slate-300 outline-none transition focus:border-white focus:ring-2 focus:ring-white/30"
-        />
-        {errors.password && (
-          <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
-        )}
-      </div>
+        }
+        {...register("password")}
+      />
 
       <Button disabled={isPending}>
         {isPending ? "Entrando..." : "Entrar"}

@@ -34,7 +34,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - `body` com `overflow-hidden` + fundos decorativos `absolute` + `main` do dashboard com `absolute h-screen w-screen overflow-auto` (conteúdo fica sob o cabeçalho).
   - Usar `fixed inset-0 -z-10` nos fundos, remover `overflow-hidden` do `body` e deixar o fluxo normal da página. Fazer antes das telas com listas.
 
-- [ ] **7. Criar componente `Input` e corrigir acessibilidade dos formulários**
+- [x] **7. Criar componente `Input` e corrigir acessibilidade dos formulários**
   - Extrair o markup repetido dos inputs (login e cadastro) para `app/ui/input.tsx` (no React 19 `ref` é prop, funciona com `register`).
   - Associar `<label htmlFor>` ao `id` do input.
   - E-mail com `type="email"`; adicionar `autoComplete` (`email`, `current-password`, `new-password`, `name`).
