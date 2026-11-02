@@ -6,17 +6,28 @@ import { FaChevronDown, FaSignOutAlt } from "react-icons/fa";
 import logo from "../../public/logo.png";
 import Image from "next/image";
 import { useLogout } from "@/hooks/auth/useLogout";
+import { useRouter } from "next/navigation";
+import { ApiError } from "@/shared/ApiError";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { data: user, isLoading } = useCurrentUser();
+  const { data: user, error, refetch } = useCurrentUser();
+  const router = useRouter();
   const [dropdownIsOpen, setDropdownIsOpen] = useState(false);
   const { signout } = useLogout();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isUnauthorized = error instanceof ApiError && error.statusCode === 401;
+
+  useEffect(() => {
+    if (isUnauthorized) {
+      router.replace("/login?expired=true");
+    }
+  }, [isUnauthorized, router]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,6 +65,30 @@ export default function RootLayout({
     await signout();
   }
 
+  if (error && !isUnauthorized) {
+    return (
+      <main className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center text-white">
+        <p>Não foi possível carregar seus dados. Verifique sua conexão.</p>
+
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="cursor-pointer rounded-xl bg-white px-6 py-2.5 font-semibold text-blue-700 transition hover:scale-[1.02]"
+        >
+          Tentar novamente
+        </button>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="relative z-10 flex min-h-screen items-center justify-center text-white">
+        Carregando...
+      </main>
+    );
+  }
+
   return (
     <>
       <header className="relative z-20 flex w-full items-center justify-between border border-white/10 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl sm:px-4 md:px-6">
@@ -79,11 +114,11 @@ export default function RootLayout({
             aria-expanded={dropdownIsOpen}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
-              {isLoading ? "..." : initials}
+              {initials}
             </div>
 
             <span className="hidden max-w-32 truncate sm:inline">
-              {isLoading ? "Carregando..." : user?.name}
+              {user.name}
             </span>
 
             <FaChevronDown

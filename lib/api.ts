@@ -6,6 +6,16 @@ interface ApiErrorResponse {
   message?: string;
 }
 
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /**
+     * Quando `true`, um 401 não redireciona automaticamente para o login;
+     * quem fez a chamada decide o que fazer (ex.: checagem de sessão).
+     */
+    skipAuthRedirect?: boolean;
+  }
+}
+
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -15,7 +25,7 @@ api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError<ApiErrorResponse>(error)) {
-      if (error.response && error.response.status === 401) {
+      if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
         if (typeof window !== "undefined") {
           localStorage.clear();
 

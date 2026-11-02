@@ -2,7 +2,8 @@ import { api } from "@/lib/api";
 import { User } from "@/model/user";
 
 export async function getCurrentUser(): Promise<User> {
-  const response = await api.get("/auth/me");
+  // O 401 aqui significa apenas "não logado"; quem usa decide se redireciona.
+  const response = await api.get("/auth/me", { skipAuthRedirect: true });
   return response.data;
 }
 

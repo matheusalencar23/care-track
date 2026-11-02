@@ -3,6 +3,7 @@
 import LoginForm from "./components/loginForm";
 import Link from "next/link";
 import ExternalLayout from "../ui/components/external-layout";
+import GuestOnly from "../ui/components/guest-only";
 import ReactModal from "react-modal";
 import { useEffect, useState } from "react";
 
@@ -18,7 +19,7 @@ export default function Login() {
   }
 
   return (
-    <>
+    <GuestOnly>
       <ExternalLayout title="Faça login para acessar a plataforma">
         <LoginForm toggleModal={toggleModal} />
 
@@ -90,6 +91,6 @@ export default function Login() {
           Fechar
         </button>
       </ReactModal>
-    </>
+    </GuestOnly>
   );
 }

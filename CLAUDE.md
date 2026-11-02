@@ -23,7 +23,7 @@ Não há framework de testes configurado.
 Os dados fluem em camadas; siga a mesma divisão ao adicionar funcionalidades:
 
 1. **`lib/api.ts`** — instância única e compartilhada do axios (`withCredentials: true`; a autenticação é baseada em cookies, nenhum token é manipulado no cliente). Um interceptor de resposta:
-   - em caso de **401**, limpa o `localStorage` e redireciona para `/login?expired=true` (exceto se já estiver em `/login`);
+   - em caso de **401**, limpa o `localStorage` e redireciona para `/login?expired=true` (exceto se já estiver em `/login` ou se a requisição usar `{ skipAuthRedirect: true }`, como `getCurrentUser`);
    - converte todo erro do axios em `ApiError` (`shared/ApiError.ts`), usando `response.data.message` do backend, com uma mensagem genérica em português como fallback.
 2. **`services/*.service.ts`** — funções assíncronas simples que encapsulam as chamadas ao `api` e retornam `response.data`. Os tipos de resposta ficam em `model/`.
 3. **`hooks/<domínio>/use*.ts`** — hooks de cliente consumidos pelos componentes. Leituras usam `useQuery` do TanStack Query com chaves de `lib/query-keys.ts` (centralize novas chaves lá). Mutações exibem erros via `react-toastify` (`err instanceof ApiError ? err.message : mensagem genérica`) e navegam com `useRouter`. Observação: `useLogin` usa `useMutation` e invalida `queryKeys.auth.me`; já `useSignup`/`useLogout` são funções assíncronas comuns com try/catch.
@@ -33,7 +33,7 @@ Os dados fluem em camadas; siga a mesma divisão ao adicionar funcionalidades:
 
 - `app/layout.tsx` — layout raiz: fundo em gradiente global, fonte Inter e tudo envolvido em `Providers` (`app/providers.tsx`: `QueryClientProvider` + `ToastContainer`).
 - `app/page.tsx` — landing page pública; `app/login` e `app/signup` — páginas públicas de autenticação que usam `app/ui/components/external-layout.tsx`. Componentes específicos de uma página ficam numa pasta `components/` ao lado dela.
-- `app/(authenticated)/` — route group das páginas para usuários logados (ex.: `dashboard`). Seu `layout.tsx` é um client component que renderiza o cabeçalho com o menu do usuário (via `useCurrentUser`) e o logout. Não há middleware/proxy protegendo rotas; o controle de acesso depende de o backend retornar 401 e de o interceptor do axios redirecionar.
+- `app/(authenticated)/` — route group das páginas para usuários logados (ex.: `dashboard`). Seu `layout.tsx` é um client component que só renderiza a página depois que `useCurrentUser` confirma o usuário: mostra carregamento, uma tela de erro com "Tentar novamente" (falha de rede/500) ou redireciona para `/login?expired=true` em 401. As páginas de login e cadastro são envolvidas por `app/ui/components/guest-only.tsx`, que manda quem já está logado para `/dashboard`. Não há `proxy.ts`; a proteção é toda no cliente, e o backend continua sendo a barreira real.
 - Componentes de UI compartilhados ficam em `app/ui/`.
 
 Alias de importação: `@/*` aponta para a raiz do repositório (ex.: `@/lib/api`, `@/hooks/auth/useLogin`).

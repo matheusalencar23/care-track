@@ -22,11 +22,11 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - `app/login/components/loginForm.tsx`: botão não fica desabilitado durante `isPending`.
   - Usar o componente `Button` (`app/ui/button.tsx`) e fazê-lo aceitar `type`, `onClick` e demais props de `<button>`.
 
-- [ ] **5. Proteger as rotas autenticadas**
-  - `app/(authenticated)/layout.tsx` renderiza `children` antes de confirmar o usuário; se a API cair (rede/500), a página abre vazia.
-  - Mínimo: estados de carregamento/erro no layout e só renderizar quando `user` existir.
-  - Redirecionar usuário logado que acessa `/login` e `/signup` para `/dashboard`.
-  - Avaliar `proxy.ts` (middleware do Next 16) — só funciona se o cookie de sessão estiver visível no domínio do frontend. Decidir junto com o backend.
+- [x] **5. Proteger as rotas autenticadas** (proteção no cliente; `proxy.ts` pendente)
+  - [x] `app/(authenticated)/layout.tsx` renderiza `children` antes de confirmar o usuário; se a API cair (rede/500), a página abre vazia.
+  - [x] Mínimo: estados de carregamento/erro no layout e só renderizar quando `user` existir.
+  - [x] Redirecionar usuário logado que acessa `/login` e `/signup` para `/dashboard`.
+  - [ ] Avaliar `proxy.ts` (middleware do Next 16) — só funciona se o cookie de sessão estiver visível no domínio do frontend. Decidir junto com o backend.
 
 ## 🟡 Melhorias
 
