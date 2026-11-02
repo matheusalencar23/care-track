@@ -3,16 +3,12 @@
 import { useCurrentUser } from "@/hooks/auth/useCurrentUser";
 
 export default function Dashboard() {
-  const { data: user, isLoading } = useCurrentUser();
-
-  if (isLoading) {
-    return <header>Carregando...</header>;
-  }
+  // O layout autenticado só renderiza a página depois de carregar o usuário.
+  const { data: user } = useCurrentUser();
 
   return (
-    <main className="absolute z-1 h-screen w-screen overflow-auto">
-      <h1>{user?.name}</h1>
-
+    <main className="flex-1 p-6 text-white">
+      <h1 className="text-2xl font-semibold">{user?.name}</h1>
     </main>
   );
 }

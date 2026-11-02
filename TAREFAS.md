@@ -30,7 +30,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
 
 ## 🟡 Melhorias
 
-- [ ] **6. Refazer a estrutura de layout base**
+- [x] **6. Refazer a estrutura de layout base**
   - `body` com `overflow-hidden` + fundos decorativos `absolute` + `main` do dashboard com `absolute h-screen w-screen overflow-auto` (conteúdo fica sob o cabeçalho).
   - Usar `fixed inset-0 -z-10` nos fundos, remover `overflow-hidden` do `body` e deixar o fluxo normal da página. Fazer antes das telas com listas.
 
@@ -65,4 +65,4 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
 - [ ] Remover a devDependency `@types/react-toastify` (a v11 já traz tipos).
 - [ ] `globals.css`: tokens `--background`, `--surface`, `--border`, `--foreground` etc. não geram utilitários do Tailwind (só `--color-*`). Renomear para `--color-*` ou remover.
 - [ ] Deixar `app/login/page.tsx` como Server Component, isolando o modal num client component.
-- [ ] Dashboard: trocar `<header>Carregando...</header>` por um elemento adequado.
+- [x] Dashboard: trocar `<header>Carregando...</header>` por um elemento adequado.

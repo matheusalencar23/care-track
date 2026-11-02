@@ -67,7 +67,7 @@ export default function RootLayout({
 
   if (error && !isUnauthorized) {
     return (
-      <main className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center text-white">
         <p>Não foi possível carregar seus dados. Verifique sua conexão.</p>
 
         <button
@@ -83,15 +83,15 @@ export default function RootLayout({
 
   if (!user) {
     return (
-      <main className="relative z-10 flex min-h-screen items-center justify-center text-white">
+      <main className="flex min-h-screen items-center justify-center text-white">
         Carregando...
       </main>
     );
   }
 
   return (
-    <>
-      <header className="relative z-20 flex w-full items-center justify-between border border-white/10 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl sm:px-4 md:px-6">
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-20 flex w-full items-center justify-between border border-white/10 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl sm:px-4 md:px-6">
         <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
           <Image
             src={logo}
@@ -158,6 +158,6 @@ export default function RootLayout({
       </header>
 
       {children}
-    </>
+    </div>
   );
 }

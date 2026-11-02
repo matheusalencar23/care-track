@@ -10,7 +10,7 @@ interface Props {
 
 export default function ExternalLayout({ title, children }: Props) {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+    <main className="flex min-h-screen items-center justify-center px-6 py-10">
       <Card>
         <div className="mb-6 flex flex-col items-center">
           <Image src={logo} alt="Logo" className="w-50 mb-2" loading="eager" />

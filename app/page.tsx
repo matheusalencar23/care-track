@@ -5,11 +5,7 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main>
-      {/* Background */}
-      
-
-      {/* Content */}
-      <section className="relative mx-auto flex min-h-screen max-w-7xl items-center p-6">
+      <section className="mx-auto flex min-h-screen max-w-7xl items-center p-6">
         <div className="grid w-full items-center gap-16 lg:grid-cols-1">
           {/* Left */}
           <div>
