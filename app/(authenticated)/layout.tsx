@@ -9,7 +9,7 @@ import { useLogout } from "@/hooks/auth/useLogout";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/ApiError";
 
-export default function RootLayout({
+export default function AuthenticatedLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -93,7 +93,7 @@ export default function RootLayout({
             src={logo}
             alt="Logo CareTrack"
             className="w-10 sm:w-12 md:w-15"
-            priority
+            preload
           />
 
           <h1 className="truncate text-lg font-semibold text-blue-900 sm:text-xl md:text-2xl">
@@ -126,7 +126,7 @@ export default function RootLayout({
 
           {dropdownIsOpen && (
             <div
-              className="absolute right-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-1.5rem))] origin-top-right overflow-hidden rounded-xl border border-white/10 bg-white shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-1.5rem))] origin-top-right overflow-hidden rounded-xl border border-white/10 bg-white shadow-xl ring-1 ring-black/5"
               role="menu"
             >
               <div className="border-b border-gray-100 px-4 py-3">

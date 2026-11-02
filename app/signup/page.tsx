@@ -3,7 +3,7 @@ import RegisterForm from "./components/registerForm";
 import ExternalLayout from "../ui/components/external-layout";
 import GuestOnly from "../ui/components/guest-only";
 
-export default function SingUp() {
+export default function SignUp() {
   return (
     <GuestOnly>
       <ExternalLayout title="Faça seu cadastro para usar a plataforma">

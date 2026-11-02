@@ -54,24 +54,26 @@
   --color-danger-600: #dc2626;
 
   /* Backgrounds */
-  --background: #f8fafc;
-  --background-dark: #0f172a;
-  --background-darker: #020617;
+  --color-background: #f8fafc;
+  --color-background-dark: #0f172a;
+  --color-background-darker: #020617;
 
   /* Surfaces */
-  --surface: #ffffff;
-  --surface-secondary: #f1f5f9;
-  --surface-dark: rgba(255, 255, 255, 0.08);
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f1f5f9;
+  --color-surface-dark: rgba(255, 255, 255, 0.08);
 
   /* Borders */
-  --border: #e2e8f0;
-  --border-dark: rgba(255, 255, 255, 0.12);
+  --color-border: #e2e8f0;
+  --color-border-dark: rgba(255, 255, 255, 0.12);
 
   /* Text */
-  --foreground: #1e293b;
-  --foreground-secondary: #64748b;
-  --foreground-inverse: #ffffff;
+  --color-foreground: #1e293b;
+  --color-foreground-secondary: #64748b;
+  --color-foreground-inverse: #ffffff;
+}
 
+:root {
   /* Brand Gradient */
   --gradient-primary: linear-gradient(
     135deg,

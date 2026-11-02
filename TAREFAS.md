@@ -57,12 +57,12 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
 
 ## 🟢 Detalhes
 
-- [ ] Trocar `priority` por `preload` no `<Image>` de `app/(authenticated)/layout.tsx` (`priority` foi depreciado no Next 16).
-- [ ] Remover `animate-in fade-in zoom-in-95` do dropdown ou instalar `tw-animate-css`.
-- [ ] Renomear `SingUp` → `SignUp` (`app/signup/page.tsx`) e `RootLayout` → `AuthenticatedLayout` (`app/(authenticated)/layout.tsx`).
-- [ ] Remover o TODO desatualizado "Implementar o fluxo de criação de conta" (`app/login/page.tsx`).
-- [ ] `<html lang="pt">` → `lang="pt-BR"` (`app/layout.tsx`).
-- [ ] Remover a devDependency `@types/react-toastify` (a v11 já traz tipos).
-- [ ] `globals.css`: tokens `--background`, `--surface`, `--border`, `--foreground` etc. não geram utilitários do Tailwind (só `--color-*`). Renomear para `--color-*` ou remover.
-- [ ] Deixar `app/login/page.tsx` como Server Component, isolando o modal num client component.
+- [x] Trocar `priority` por `preload` no `<Image>` de `app/(authenticated)/layout.tsx` (`priority` foi depreciado no Next 16).
+- [x] Remover `animate-in fade-in zoom-in-95` do dropdown ou instalar `tw-animate-css`.
+- [x] Renomear `SingUp` → `SignUp` (`app/signup/page.tsx`) e `RootLayout` → `AuthenticatedLayout` (`app/(authenticated)/layout.tsx`).
+- [x] Remover o TODO desatualizado "Implementar o fluxo de criação de conta" (`app/login/page.tsx`).
+- [x] `<html lang="pt">` → `lang="pt-BR"` (`app/layout.tsx`).
+- [x] Remover a devDependency `@types/react-toastify` (a v11 já traz tipos).
+- [x] `globals.css`: tokens `--background`, `--surface`, `--border`, `--foreground` etc. não geram utilitários do Tailwind (só `--color-*`). Renomear para `--color-*` ou remover.
+- [x] Deixar `app/login/page.tsx` como Server Component, isolando o modal num client component.
 - [x] Dashboard: trocar `<header>Carregando...</header>` por um elemento adequado.

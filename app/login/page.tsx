@@ -1,27 +1,13 @@
-"use client";
-
 import LoginForm from "./components/loginForm";
 import Link from "next/link";
 import ExternalLayout from "../ui/components/external-layout";
 import GuestOnly from "../ui/components/guest-only";
-import ReactModal from "react-modal";
-import { useEffect, useState } from "react";
 
 export default function Login() {
-  const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
-
-  useEffect(() => {
-    ReactModal.setAppElement("main");
-  }, []);
-
-  function toggleModal() {
-    setModalIsOpen((value) => !value);
-  }
-
   return (
     <GuestOnly>
       <ExternalLayout title="Faça login para acessar a plataforma">
-        <LoginForm toggleModal={toggleModal} />
+        <LoginForm />
 
         {/* Divider - Adicionar quando implementar o login via google */}
         {/* <div className="my-6 flex items-center">
@@ -41,8 +27,6 @@ export default function Login() {
           Entrar com Google
         </button> */}
 
-        {/* Footer */}
-        {/* TODO: Implementar o fluxo de criação de conta */}
         <p className="mt-4 text-center text-sm text-slate-200">
           Ainda não possui uma conta?
           <Link
@@ -53,44 +37,6 @@ export default function Login() {
           </Link>
         </p>
       </ExternalLayout>
-      <ReactModal
-        isOpen={modalIsOpen}
-        onRequestClose={toggleModal}
-        contentLabel="Recuperação de senha"
-        style={{
-          content: {
-            top: "50%",
-            left: "50%",
-            right: "auto",
-            bottom: "auto",
-            marginRight: "-50%",
-            transform: "translate(-50%, -50%)",
-            width: "min(28rem, calc(100vw - 2rem))",
-            borderRadius: "1rem",
-            padding: "1.5rem",
-          },
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-          },
-        }}
-      >
-        <h2 className="text-lg font-semibold text-blue-900">
-          Recuperação de senha
-        </h2>
-
-        <p className="mt-2 text-sm text-slate-600">
-          Em breve você poderá redefinir sua senha por aqui. Por enquanto, entre
-          em contato com o suporte.
-        </p>
-
-        <button
-          type="button"
-          onClick={toggleModal}
-          className="mt-6 w-full cursor-pointer rounded-xl bg-blue-700 py-2.5 font-semibold text-white transition hover:bg-blue-800"
-        >
-          Fechar
-        </button>
-      </ReactModal>
     </GuestOnly>
   );
 }

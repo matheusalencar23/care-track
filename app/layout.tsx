@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt" className={`${inter.className}`}>
+    <html lang="pt-BR" className={`${inter.className}`}>
       <body className="relative isolate min-h-screen bg-slate-950">
         <Providers>
           {/* Fundo decorativo fixo, atrás de todo o conteúdo */}
