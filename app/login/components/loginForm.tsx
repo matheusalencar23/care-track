@@ -26,8 +26,8 @@ export default function LoginForm({ toggleModal }: Props) {
     resolver: zodResolver(schema),
   });
 
-  async function onSubmit(data: LoginData) {
-    await login(data);
+  function onSubmit(data: LoginData) {
+    login(data);
   }
 
   return (

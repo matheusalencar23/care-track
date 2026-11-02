@@ -31,7 +31,7 @@ export function useLogin() {
   });
 
   return {
-    login: mutation.mutateAsync,
+    login: mutation.mutate,
     isPending: mutation.isPending,
   };
 }

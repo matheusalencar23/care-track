@@ -8,7 +8,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - `hooks/auth/useLogout.ts`: chamar `queryClient.clear()` antes de redirecionar.
   - Hoje, após logout, voltar para `/dashboard` mostra os dados do usuário anterior (cache com `staleTime` de 5 min em `useCurrentUser`). Crítico quando houver dados de pacientes (LGPD).
 
-- [ ] **2. Eliminar promises rejeitadas sem tratamento**
+- [x] **2. Eliminar promises rejeitadas sem tratamento**
   - `useSignup` e `useLogout` fazem `throw err` depois do toast; `useLogin` expõe `mutateAsync`.
   - Os chamadores (`onSubmit` nos forms, `logout` em `app/(authenticated)/layout.tsx`) fazem `await` sem `catch` → erro não tratado / overlay do Next em dev.
   - Não relançar o erro e/ou usar `mutate` em vez de `mutateAsync`.

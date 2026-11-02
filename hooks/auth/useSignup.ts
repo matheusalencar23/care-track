@@ -21,8 +21,6 @@ export function useSignup() {
       } else {
         toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
       }
-
-      throw err;
     }
   }
 
