@@ -26,12 +26,11 @@ api.interceptors.response.use(
   (error: unknown) => {
     if (axios.isAxiosError<ApiErrorResponse>(error)) {
       if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
-        if (typeof window !== "undefined") {
-          localStorage.clear();
-
-          if (window.location.pathname !== "/login") {
-            window.location.href = "/login?expired=true";
-          }
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/login"
+        ) {
+          window.location.href = "/login?expired=true";
         }
       }
 

@@ -48,7 +48,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
 - [x] **9. Padronizar os hooks de mutação**
   - Migrar `useSignup` e `useLogout` para `useMutation`, como `useLogin` (ganha `isPending`, ex.: botão "Sair" desabilitado).
 
-- [ ] **10. Ajustar interceptor e configuração do React Query**
+- [x] **10. Ajustar interceptor e configuração do React Query**
   - Remover `localStorage.clear()` do interceptor (app não usa localStorage; apaga dados de outros scripts do domínio).
   - Configurar `retry` no `QueryClient` (`app/providers.tsx`) para não repetir erros 4xx.
 
