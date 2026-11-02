@@ -18,7 +18,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - O link `<a href="#">` em `loginForm.tsx` não faz `preventDefault`.
   - Esconder o link até o fluxo existir, ou adicionar o fechamento.
 
-- [ ] **4. Evitar envio duplo no login**
+- [x] **4. Evitar envio duplo no login**
   - `app/login/components/loginForm.tsx`: botão não fica desabilitado durante `isPending`.
   - Usar o componente `Button` (`app/ui/button.tsx`) e fazê-lo aceitar `type`, `onClick` e demais props de `<button>`.
 

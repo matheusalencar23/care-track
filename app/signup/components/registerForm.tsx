@@ -72,7 +72,7 @@ export default function RegisterForm() {
         )}
       </div>
 
-      <Button isDisabled={isSubmitting}>
+      <Button disabled={isSubmitting}>
         {isSubmitting ? "Cadastrando..." : "Cadastrar"}
       </Button>
     </form>

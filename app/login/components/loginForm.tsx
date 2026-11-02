@@ -1,5 +1,6 @@
 "use client";
 
+import Button from "@/app/ui/button";
 import { useLogin } from "@/hooks/auth/useLogin";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -71,9 +72,9 @@ export default function LoginForm({ toggleModal }: Props) {
         )}
       </div>
 
-      <button className="mt-4 w-full rounded-xl bg-white py-3 font-semibold text-blue-700 transition hover:scale-[1.02]">
+      <Button disabled={isPending}>
         {isPending ? "Entrando..." : "Entrar"}
-      </button>
+      </Button>
     </form>
   );
 }
