@@ -37,3 +37,14 @@ Os dados fluem em camadas; siga a mesma divisão ao adicionar funcionalidades:
 - Componentes de UI compartilhados ficam em `app/ui/`.
 
 Alias de importação: `@/*` aponta para a raiz do repositório (ex.: `@/lib/api`, `@/hooks/auth/useLogin`).
+
+## Regras do domínio (LGPD e registro de enfermagem)
+
+O app trata dados sensíveis de saúde. O planejamento e o resumo legal estão em `ROADMAP.md`; em qualquer funcionalidade nova:
+
+- Nunca guardar dados de pacientes em `localStorage`/`sessionStorage`/IndexedDB, URLs (use IDs opacos; nada de nome/CPF em rota ou query string) ou logs/analytics.
+- Registros do histórico do paciente são **imutáveis** (COFEN): sem editar/excluir; correções via retificação vinculada.
+- "Excluir paciente" é **arquivar**: o prontuário é mantido pelo prazo legal (Lei 13.787/2018, 20 anos).
+- Autoria dos registros (nome + COREN, data/hora) vem da API, nunca de campos editáveis.
+- Anexos só por URLs autenticadas/assinadas de curta duração; fotos e vídeos exigem autorização de uso de imagem registrada.
+- Coletar apenas os dados necessários (minimização); a autorização real é sempre da API.
