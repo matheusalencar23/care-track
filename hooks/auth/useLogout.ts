@@ -1,21 +1,27 @@
-import { useRouter } from "next/navigation";
-import * as authService from "@/services/auth.service";
+"use client";
+
 import { notifyError } from "@/lib/notify-error";
-import { useQueryClient } from "@tanstack/react-query";
+import { logout } from "@/services/auth.service";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 export function useLogout() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  async function signout() {
-    try {
-      await authService.logout();
+  const mutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      // Remove todos os dados em cache (usuário, pacientes etc.) para que
+      // nada da sessão encerrada seja exibido após o logout.
       queryClient.clear();
       router.push("/login");
-    } catch (err) {
-      notifyError(err);
-    }
-  }
+    },
+    onError: notifyError,
+  });
 
-  return { signout };
+  return {
+    signout: mutation.mutate,
+    isPending: mutation.isPending,
+  };
 }

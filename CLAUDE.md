@@ -26,7 +26,7 @@ Os dados fluem em camadas; siga a mesma divisão ao adicionar funcionalidades:
    - em caso de **401**, limpa o `localStorage` e redireciona para `/login?expired=true` (exceto se já estiver em `/login` ou se a requisição usar `{ skipAuthRedirect: true }`, como `getCurrentUser`);
    - converte todo erro do axios em `ApiError` (`shared/ApiError.ts`), usando `response.data.message` do backend, com uma mensagem genérica em português como fallback.
 2. **`services/*.service.ts`** — funções assíncronas simples que encapsulam as chamadas ao `api` e retornam `response.data`. Os tipos de resposta ficam em `model/`.
-3. **`hooks/<domínio>/use*.ts`** — hooks de cliente consumidos pelos componentes. Leituras usam `useQuery` do TanStack Query com chaves de `lib/query-keys.ts` (centralize novas chaves lá). Mutações exibem erros via `react-toastify` (`err instanceof ApiError ? err.message : mensagem genérica`) e navegam com `useRouter`. Observação: `useLogin` usa `useMutation` e invalida `queryKeys.auth.me`; já `useSignup`/`useLogout` são funções assíncronas comuns com try/catch.
+3. **`hooks/<domínio>/use*.ts`** — hooks de cliente consumidos pelos componentes. Leituras usam `useQuery` do TanStack Query com chaves de `lib/query-keys.ts` (centralize novas chaves lá). Escritas usam `useMutation` com `onError: notifyError` (`lib/notify-error.ts`, toast com a mensagem do `ApiError` ou uma genérica), navegam com `useRouter` e expõem `{ <ação>: mutation.mutate, isPending }` — use `mutate` (não `mutateAsync`) para não gerar promises rejeitadas sem tratamento.
 4. **Componentes** — formulários usam `react-hook-form` + `zodResolver`, com o schema Zod (v4) definido no próprio arquivo do componente.
 
 ### Rotas (`app/`)

@@ -16,17 +16,17 @@ const schema = z.object({
 type RegisterData = z.infer<typeof schema>;
 
 export default function RegisterForm() {
-  const { signup } = useSignup();
+  const { signup, isPending } = useSignup();
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<RegisterData>({
     resolver: zodResolver(schema),
   });
 
-  async function onSubmit(data: RegisterData) {
-    await signup(data);
+  function onSubmit(data: RegisterData) {
+    signup(data);
   }
 
   return (
@@ -57,8 +57,8 @@ export default function RegisterForm() {
         {...register("password")}
       />
 
-      <Button disabled={isSubmitting}>
-        {isSubmitting ? "Cadastrando..." : "Cadastrar"}
+      <Button disabled={isPending}>
+        {isPending ? "Cadastrando..." : "Cadastrar"}
       </Button>
     </form>
   );

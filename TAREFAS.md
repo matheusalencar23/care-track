@@ -45,7 +45,7 @@ Lista de correções e melhorias levantadas na revisão. Marque `[x]` ao conclui
   - Criar helper (ex.: `notifyError(err)`) para o padrão `instanceof ApiError ? toast(err.message) : mensagem genérica`, repetido 3 vezes.
   - No interceptor (`lib/api.ts`), diferenciar erro de rede (sem `response`) — ex.: "Não foi possível conectar ao servidor".
 
-- [ ] **9. Padronizar os hooks de mutação**
+- [x] **9. Padronizar os hooks de mutação**
   - Migrar `useSignup` e `useLogout` para `useMutation`, como `useLogin` (ganha `isPending`, ex.: botão "Sair" desabilitado).
 
 - [ ] **10. Ajustar interceptor e configuração do React Query**

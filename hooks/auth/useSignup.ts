@@ -1,24 +1,25 @@
-import * as authService from "@/services/auth.service";
+"use client";
+
 import { notifyError } from "@/lib/notify-error";
+import { signup } from "@/services/auth.service";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 export function useSignup() {
   const router = useRouter();
 
-  async function signup(data: {
-    name: string;
-    email: string;
-    password: string;
-  }) {
-    try {
-      await authService.signup(data);
+  const mutation = useMutation({
+    mutationFn: signup,
+    onSuccess: () => {
       toast.success("Usuário cadastrado com sucesso!");
       router.push("/login");
-    } catch (err) {
-      notifyError(err);
-    }
-  }
+    },
+    onError: notifyError,
+  });
 
-  return { signup };
+  return {
+    signup: mutation.mutate,
+    isPending: mutation.isPending,
+  };
 }
