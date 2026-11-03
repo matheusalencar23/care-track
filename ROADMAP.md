@@ -74,8 +74,9 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [ ] Logout automático por inatividade.
 - [ ] Cabeçalhos de segurança no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
-- [ ] Recuperação de senha (substituir o modal provisório).
-- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**; incluir COREN no cadastro.
+- [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
+- [x] Incluir **COREN + UF** no cadastro.
+- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**.
 - [ ] Páginas de Política de Privacidade e Termos de Uso, com aceite no cadastro.
 
 ### Fase 1 — Pacientes
@@ -143,7 +144,11 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 | `POST` | `/auth/signin` | Login |
 | `POST` | `/auth/signout` | Logout |
 | `GET` | `/auth/me` | Usuário logado |
-| `POST` | `/users/signup` | Cadastro |
+| `POST` | `/users/signup` | Cadastro (nome, e-mail, senha, COREN e UF) |
+| `GET` | `/users/validate?token=` | Confirmar e-mail (link do e-mail abre `/verify-email` no front) |
+| `POST` | `/users/resend` | Reenviar e-mail de confirmação (sempre 200) |
+| `POST` | `/auth/forgot-password` | Pedir link de redefinição de senha (sempre 200) |
+| `POST` | `/auth/reset-password` | Redefinir senha com o token (link do e-mail abre `/reset-password` no front) |
 
 ### Propostos
 

@@ -1,0 +1,32 @@
+// Mesma lista aceita pela API para a UF do COREN.
+export const BRAZILIAN_STATES = [
+  "AC",
+  "AL",
+  "AM",
+  "AP",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MG",
+  "MS",
+  "MT",
+  "PA",
+  "PB",
+  "PE",
+  "PI",
+  "PR",
+  "RJ",
+  "RN",
+  "RO",
+  "RR",
+  "RS",
+  "SC",
+  "SE",
+  "SP",
+  "TO",
+] as const;
+
+export type BrazilianState = (typeof BRAZILIAN_STATES)[number];

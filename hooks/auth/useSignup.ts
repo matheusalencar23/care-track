@@ -12,7 +12,9 @@ export function useSignup() {
   const mutation = useMutation({
     mutationFn: signup,
     onSuccess: () => {
-      toast.success("Usuário cadastrado com sucesso!");
+      toast.success(
+        "Cadastro realizado! Enviamos um link de confirmação para o seu e-mail.",
+      );
       router.push("/login");
     },
     onError: notifyError,

@@ -36,6 +36,12 @@ export default function Login() {
             Criar conta
           </Link>
         </p>
+
+        <p className="mt-2 text-center text-sm text-slate-200">
+          <Link href="/verify-email" className="text-white hover:text-teal-300">
+            Não recebeu o e-mail de confirmação?
+          </Link>
+        </p>
       </ExternalLayout>
     </GuestOnly>
   );
