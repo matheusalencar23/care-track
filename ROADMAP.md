@@ -72,14 +72,14 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [x] Proxy de mesma origem: rewrite de `/api/v1/*` para a API no `next.config.ts` (variável `API_URL` só do servidor, no lugar de `NEXT_PUBLIC_API_URL`) e `proxy.ts` que manda para o login quem acessa a área logada sem o cookie.
 - [x] `ApiError` com `code` e `requestId`; tela de erro mostra o código da requisição para o suporte; `isInvalidTokenError` passa a usar o `code`.
 - [ ] Acompanhar as [pendências na API](#pendências-na-api) que bloqueiam o front (sessão deslizante e rate limit antes da Fase 1).
-- [ ] Shell da área logada: navegação (menu lateral ou superior) com "Pacientes" e "Meu perfil".
+- [x] Shell da área logada: navegação na barra superior, com "Pacientes" (página inicial após o login) e "Meu perfil" no menu do usuário. O `/dashboard` saiu e redireciona para `/pacientes`.
 - [ ] Kit de UI: `Modal`, `ConfirmDialog`, `Textarea`, `Select`, `DateInput`, campos com máscara (CPF, telefone), `Table`/lista, `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
 - [ ] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão) (depende da API).
 - [ ] Cabeçalhos de segurança no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
 - [x] Incluir **COREN + UF** no cadastro.
-- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**. A API só tem a leitura (`GET /auth/me`); edição depende de rota nova.
+- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**. A página `/perfil` já mostra os dados (só leitura, via `GET /auth/me`); a edição depende de rota nova na API.
 - [ ] Páginas de Política de Privacidade e Termos de Uso, com aceite no cadastro.
 
 ### Fase 1 — Pacientes

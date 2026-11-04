@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Envolve páginas públicas de autenticação (login, cadastro): se já houver
- * uma sessão ativa, redireciona para o dashboard. O conteúdo é exibido
+ * uma sessão ativa, redireciona para a lista de pacientes. O conteúdo é exibido
  * imediatamente para não atrasar quem não está logado.
  */
 export default function GuestOnly({ children }: Props) {
@@ -19,7 +19,7 @@ export default function GuestOnly({ children }: Props) {
 
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard");
+      router.replace("/pacientes");
     }
   }, [user, router]);
 

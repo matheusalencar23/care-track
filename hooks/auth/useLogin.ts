@@ -17,7 +17,7 @@ export function useLogin() {
         queryKey: queryKeys.auth.me,
       });
 
-      router.push("/dashboard");
+      router.push("/pacientes");
     },
     onError: notifyError,
   });

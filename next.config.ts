@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard",
+        destination: "/pacientes",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {
