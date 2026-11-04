@@ -2,6 +2,7 @@ import { ApiError } from "@/shared/ApiError";
 import axios from "axios";
 
 interface ApiErrorResponse {
+  code?: string;
   message?: string;
 }
 
@@ -44,7 +45,13 @@ api.interceptors.response.use(
         error.response.data?.message ??
         "Ocorreu um erro inesperado. Por favor, entre em contato com o suporte.";
 
-      throw new ApiError(message, error.response.status);
+      const requestId = error.response.headers["x-request-id"];
+
+      throw new ApiError(message, {
+        statusCode: error.response.status,
+        code: error.response.data?.code,
+        requestId: typeof requestId === "string" ? requestId : undefined,
+      });
     }
 
     throw error;

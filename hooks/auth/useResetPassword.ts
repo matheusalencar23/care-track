@@ -20,7 +20,7 @@ export function useResetPassword() {
       router.push("/login");
     },
     onError: (err) => {
-      // 422 é token inválido/expirado: a página mostra o aviso na tela.
+      // Link inválido, expirado ou já usado: a página mostra o aviso na tela.
       if (!isInvalidTokenError(err)) {
         notifyError(err);
       }

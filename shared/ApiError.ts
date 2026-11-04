@@ -1,13 +1,26 @@
+interface ApiErrorDetails {
+  statusCode?: number;
+  code?: string;
+  requestId?: string;
+}
+
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode?: number,
-  ) {
+  public readonly statusCode?: number;
+  public readonly code?: string;
+  public readonly requestId?: string;
+
+  constructor(message: string, details: ApiErrorDetails = {}) {
     super(message);
+    this.statusCode = details.statusCode;
+    this.code = details.code;
+    this.requestId = details.requestId;
   }
 }
 
-/** A API responde 422 quando o token de um link enviado por e-mail é inválido, expirado ou já usado. */
+export function hasErrorCode(err: unknown, code: string) {
+  return err instanceof ApiError && err.code === code;
+}
+
 export function isInvalidTokenError(err: unknown) {
-  return err instanceof ApiError && err.statusCode === 422;
+  return hasErrorCode(err, "INVALID_LINK_TOKEN");
 }

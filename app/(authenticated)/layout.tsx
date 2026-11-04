@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useLogout } from "@/hooks/auth/useLogout";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/ApiError";
+import RequestId from "@/app/ui/request-id";
 
 export default function AuthenticatedLayout({
   children,
@@ -65,6 +66,8 @@ export default function AuthenticatedLayout({
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center text-white">
         <p>Não foi possível carregar seus dados. Verifique sua conexão.</p>
+
+        <RequestId error={error} />
 
         <button
           type="button"

@@ -3,7 +3,8 @@
 import Button from "@/app/ui/button";
 import LinkButton from "@/app/ui/link-button";
 import { useVerifyEmail } from "@/hooks/auth/useVerifyEmail";
-import { isInvalidTokenError } from "@/shared/ApiError";
+import RequestId from "@/app/ui/request-id";
+import { hasErrorCode, isInvalidTokenError } from "@/shared/ApiError";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import ResendVerificationForm from "./resendVerificationForm";
@@ -56,6 +57,18 @@ export default function VerifyEmail({ token }: Props) {
     );
   }
 
+  if (hasErrorCode(error, "EMAIL_ALREADY_VERIFIED")) {
+    return (
+      <>
+        <p className="text-center text-white">
+          Seu e-mail já está confirmado. É só fazer login.
+        </p>
+
+        <LinkButton href="/login">Fazer login</LinkButton>
+      </>
+    );
+  }
+
   if (isInvalidTokenError(error)) {
     return (
       <>
@@ -79,6 +92,8 @@ export default function VerifyEmail({ token }: Props) {
           Não conseguimos confirmar seu e-mail agora. Verifique sua conexão e
           tente de novo.
         </p>
+
+        <RequestId error={error} className="mt-2 text-center text-white" />
 
         <Button
           type="button"

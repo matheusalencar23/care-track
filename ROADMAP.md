@@ -70,7 +70,7 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 
 - [x] Definir com o backend: domínio do cookie de sessão (habilita ou não o `proxy.ts`), formato de erros, paginação e expiração da sessão. Ver [Acordos com a API](#acordos-com-a-api).
 - [x] Proxy de mesma origem: rewrite de `/api/v1/*` para a API no `next.config.ts` (variável `API_URL` só do servidor, no lugar de `NEXT_PUBLIC_API_URL`) e `proxy.ts` que manda para o login quem acessa a área logada sem o cookie.
-- [ ] `ApiError` com `code` e `requestId`; tela de erro mostra o código da requisição para o suporte; `isInvalidTokenError` passa a usar o `code`.
+- [x] `ApiError` com `code` e `requestId`; tela de erro mostra o código da requisição para o suporte; `isInvalidTokenError` passa a usar o `code`.
 - [ ] Acompanhar as [pendências na API](#pendências-na-api) que bloqueiam o front (sessão deslizante e rate limit antes da Fase 1).
 - [ ] Shell da área logada: navegação (menu lateral ou superior) com "Pacientes" e "Meu perfil".
 - [ ] Kit de UI: `Modal`, `ConfirmDialog`, `Textarea`, `Select`, `DateInput`, campos com máscara (CPF, telefone), `Table`/lista, `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
