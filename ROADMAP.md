@@ -73,7 +73,10 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [x] `ApiError` com `code` e `requestId`; tela de erro mostra o código da requisição para o suporte; `isInvalidTokenError` passa a usar o `code`.
 - [ ] Acompanhar as [pendências na API](#pendências-na-api) que bloqueiam o front (sessão deslizante e rate limit antes da Fase 1).
 - [x] Shell da área logada: navegação na barra superior, com "Pacientes" (página inicial após o login) e "Meu perfil" no menu do usuário. O `/dashboard` saiu e redireciona para `/pacientes`.
-- [ ] Kit de UI: `Modal`, `ConfirmDialog`, `Textarea`, `Select`, `DateInput`, campos com máscara (CPF, telefone), `Table`/lista, `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
+- [x] Kit de UI: `Modal`, `ConfirmDialog`, `Textarea`, `Select`, `DateInput`, campos com máscara (CPF, telefone), `Table`/lista, `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
+  - [x] Campos de formulário: `Field` comum (rótulo, dica e erro acessíveis), `Textarea`, `DateInput`, `MaskedInput` (com `react-imask`) com máscaras de CPF, telefone e Cartão SUS, que entrega só os dígitos, e validação de CPF igual à da API (`lib/masks.ts`).
+  - [x] Listagem: `Table` (vira cartões no celular), `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
+  - [x] Diálogos: `Modal` (com `<dialog>` nativo) e `ConfirmDialog`; `Button` com variantes.
 - [ ] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão) (depende da API).
 - [ ] Cabeçalhos de segurança no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
