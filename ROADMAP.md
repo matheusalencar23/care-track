@@ -2,7 +2,7 @@
 
 Planejamento das próximas etapas do frontend. O objetivo do produto: **o enfermeiro cadastra, busca, edita e arquiva seus pacientes e alimenta o histórico de cada um com textos, imagens, vídeos e outros arquivos.** Todas as operações passam pela API Node/Express.
 
-> Os endpoints listados aqui são **propostas** para orientar o frontend. Quando os contratos reais da API estiverem definidos, eles substituem a seção [Contratos da API](#contratos-da-api) e as fases são ajustadas.
+> Os contratos com a API (sessão, erros, paginação e rotas) foram definidos em 04/11/2026 a partir do código da API (`care-track-api`, v1.4.2) e estão em [Acordos com a API](#acordos-com-a-api) e [Contratos da API](#contratos-da-api). As decisões de produto da API ficam no `docs/roadmap.md` dela e prevalecem sobre este arquivo.
 
 ---
 
@@ -20,7 +20,7 @@ O CareTrack trata **dados pessoais sensíveis de saúde** e **registros de enfer
 | Base legal (art. 11, II, "f") | Tutela da saúde, em procedimento realizado por profissionais de saúde. | Dispensa consentimento para o prontuário em si, mas exige transparência e uso restrito à finalidade assistencial. |
 | Minimização (art. 6º, III) | Coletar só o necessário. | Formulário de paciente enxuto; campos opcionais justificados; nada de "campos extras por precaução". |
 | Segurança (art. 46) e incidentes (art. 48) | Medidas técnicas de proteção; comunicar incidentes à ANPD e aos titulares. | Ver [Segurança no frontend](#segurança-no-frontend). O fluxo de incidentes é do backend/organização, mas o frontend não pode ser o ponto de vazamento. |
-| Direitos do titular (art. 18) | Acesso, correção, portabilidade, informação sobre compartilhamento. | Funcionalidade de exportar os dados de um paciente; correção via retificação (ver COFEN). |
+| Direitos do titular (art. 18) | Acesso, correção, portabilidade, informação sobre compartilhamento. | Funcionalidade de exportar os dados de um paciente; correção pela edição com versões (ver COFEN). |
 | Registro das operações (art. 37) | Manter registro das operações de tratamento. | A API registra quem acessou/alterou o quê; o frontend exibe esse histórico. |
 | Crianças e adolescentes (art. 14) | Tratamento no melhor interesse; responsável legal. | Campo de responsável legal quando o paciente é menor. |
 | Retenção (art. 16, I) | Dados podem ser mantidos para cumprir obrigação legal. | Justifica **arquivar** em vez de apagar prontuários (ver Lei 13.787). |
@@ -35,7 +35,7 @@ O CareTrack trata **dados pessoais sensíveis de saúde** e **registros de enfer
 
 **Consequências diretas no produto:**
 
-1. **Registros do histórico são imutáveis.** Depois de salvos, não são editados nem excluídos; erros são corrigidos com um novo registro de **retificação** vinculado ao original.
+1. **Nada do histórico é apagado.** Decisão da API: o registro pode ser **editado**, mas cada edição cria uma versão nova e as anteriores continuam consultáveis (motivo opcional). No lugar de excluir, o registro é **anulado** com motivo obrigatório (`wrong_patient`, `duplicate`, `other` + descrição). A anulação é definitiva, e o registro anulado sai da linha do tempo padrão, mas continua guardado.
 2. **"Excluir paciente" significa arquivar.** O paciente sai das listas, mas o prontuário é mantido pelo prazo legal. A exclusão definitiva, se existir, é um processo administrativo do backend, não um botão comum.
 3. **O cadastro do enfermeiro precisa do COREN** (número + UF) para identificar a autoria dos registros.
 
@@ -68,35 +68,40 @@ Regras para qualquer código novo:
 
 Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a definição dos contratos da API.
 
-- [ ] Definir com o backend: domínio do cookie de sessão (habilita ou não o `proxy.ts`), formato de erros, paginação e expiração da sessão.
+- [x] Definir com o backend: domínio do cookie de sessão (habilita ou não o `proxy.ts`), formato de erros, paginação e expiração da sessão. Ver [Acordos com a API](#acordos-com-a-api).
+- [x] Proxy de mesma origem: rewrite de `/api/v1/*` para a API no `next.config.ts` (variável `API_URL` só do servidor, no lugar de `NEXT_PUBLIC_API_URL`) e `proxy.ts` que manda para o login quem acessa a área logada sem o cookie.
+- [ ] `ApiError` com `code` e `requestId`; tela de erro mostra o código da requisição para o suporte; `isInvalidTokenError` passa a usar o `code`.
+- [ ] Acompanhar as [pendências na API](#pendências-na-api) que bloqueiam o front (sessão deslizante e rate limit antes da Fase 1).
 - [ ] Shell da área logada: navegação (menu lateral ou superior) com "Pacientes" e "Meu perfil".
 - [ ] Kit de UI: `Modal`, `ConfirmDialog`, `Textarea`, `Select`, `DateInput`, campos com máscara (CPF, telefone), `Table`/lista, `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
-- [ ] Logout automático por inatividade.
+- [ ] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão) (depende da API).
 - [ ] Cabeçalhos de segurança no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
 - [x] Incluir **COREN + UF** no cadastro.
-- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**.
+- [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**. A API só tem a leitura (`GET /auth/me`); edição depende de rota nova.
 - [ ] Páginas de Política de Privacidade e Termos de Uso, com aceite no cadastro.
 
 ### Fase 1 — Pacientes
 
-- [ ] Modelo `Patient` mínimo: nome, nome social, data de nascimento, sexo, contato, responsável legal (se menor), identificador opcional (CPF ou CNS) e observações clínicas relevantes (alergias, condições). Validar cada campo contra o princípio da minimização.
-- [ ] **Listagem** (`/pacientes`): busca no servidor com debounce, paginação, estado vazio, carregamento e erro; dados sensíveis mascarados.
-- [ ] **Cadastro** (`/pacientes/novo`): formulário com Zod, máscaras e validações (CPF, datas).
+- [ ] Modelo `Patient` conforme a API: nome, data de nascimento e, opcionais, CPF, Cartão SUS (CNS) e telefone (só dígitos). Nome social, sexo e observações clínicas **não existem** na API; incluir só com decisão de minimização registrada lá.
+- [ ] **Listagem** (`/pacientes`): busca no servidor com debounce (nome sem acento, ou CPF/CNS exatos), paginação por página, filtro ativos/arquivados, estado vazio, carregamento e erro; dados sensíveis mascarados.
+- [ ] **Cadastro** (`/pacientes/novo`): formulário com Zod, máscaras e as mesmas validações da API (CPF com dígito verificador, CNS com 15 dígitos, telefone com DDD, nascimento entre 1900 e hoje).
 - [ ] **Detalhe** (`/pacientes/<id>`): dados cadastrais + histórico (Fase 2).
-- [ ] **Edição** (`/pacientes/<id>/editar`) dos dados cadastrais. Alterações cadastrais também ficam no histórico de auditoria.
+- [ ] **Edição** (`/pacientes/<id>/editar`) dos dados cadastrais (`PUT`, corpo completo). Paciente arquivado não é editável (409).
 - [ ] **Arquivar/reativar** com `ConfirmDialog` explicando que o prontuário é mantido; filtro "arquivados" na listagem.
+- [ ] **Consentimento de uso de imagem**: registrar (forma escrita/verbal, quem consentiu, responsável legal se menor), listar e revogar.
 - [ ] Camada de dados seguindo o padrão do projeto: `model/patient.ts`, `services/patient.service.ts`, `hooks/patients/*`, chaves em `lib/query-keys.ts`.
 
 ### Fase 2 — Histórico do paciente (registros de texto)
 
-- [ ] Linha do tempo no detalhe do paciente, do mais recente para o mais antigo, com paginação ou rolagem infinita.
-- [ ] Novo registro: tipo (evolução, anotação, procedimento...), data/hora do atendimento e texto.
+- [ ] Linha do tempo no detalhe do paciente, do mais recente para o mais antigo, com rolagem infinita (`useInfiniteQuery` sobre o cursor).
+- [ ] Novo registro: só o texto (até 20 mil caracteres). Sem tipo (decisão da API: reavaliar com o uso) e sem data/hora informada; o horário é o do servidor.
 - [ ] Autoria automática: nome + COREN do enfermeiro e data/hora de criação fornecidos pela API, nunca editáveis no frontend.
-- [ ] **Registros imutáveis**: sem editar/excluir; ação "Retificar" cria um registro novo vinculado e marca o original como retificado (ambos visíveis).
+- [ ] **Edição com versões**: envia a `version` que está sendo editada e motivo opcional; em 409 de versão desatualizada, recarregar o registro sem perder o texto digitado. Marcar "editado" e listar as versões anteriores.
+- [ ] **Anulação** com `ConfirmDialog`: motivo da lista + descrição obrigatória em "outro"; deixar claro que é definitiva. Aba ou filtro "anulados".
 - [ ] Rascunho do registro só em memória (sem `localStorage`), com aviso ao sair da página com texto não salvo.
-- [ ] Filtros por tipo e período.
+- [ ] Filtros por período: não suportado pela API hoje.
 
 ### Fase 3 — Anexos (imagens, vídeos e arquivos)
 
@@ -106,13 +111,13 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [ ] Compressão de imagens no cliente e **remoção de metadados EXIF** (GPS) antes do envio, com validação também na API.
 - [ ] Visualização: galeria de imagens, player de vídeo, pré-visualização de PDF e download para outros formatos.
 - [ ] Registro de autorização de uso de imagem do paciente antes de permitir fotos e vídeos.
-- [ ] Anexos seguem a regra de imutabilidade: não são apagados, apenas marcados como retificados ou invalidados com justificativa.
+- [ ] Anexos não são editados nem apagados: são anulados junto com o registro; para trocar um arquivo, anula-se o registro e anexa-se de novo.
 
 ### Fase 4 — Direitos do titular e auditoria
 
 - [ ] Exportar os dados de um paciente (cadastro + histórico + anexos) para atender pedidos de acesso e portabilidade.
 - [ ] Visualizar o histórico de auditoria do paciente: quem acessou ou alterou e quando.
-- [ ] Registrar o termo de consentimento/autorização de imagem e permitir revogação (bloqueia novos anexos de imagem).
+- [ ] Comprovação do consentimento de imagem (anexo do termo ou assinatura; forma em definição na API) e bloqueio de novos anexos de imagem quando revogado.
 - [ ] Tela de informações de privacidade com o contato do encarregado (DPO).
 
 ### Fase 5 — Qualidade e operação
@@ -133,46 +138,158 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 
 ---
 
+## Acordos com a API
+
+Definidos em 04/11/2026. Cada item diz o que a API faz **hoje** e o que foi acordado; o que ainda falta implementar na API está em [Pendências na API](#pendências-na-api).
+
+### Cookie de sessão e `proxy.ts`
+
+**Antes:** o login gravava o cookie `token` (JWT) com `HttpOnly`, `SameSite=Strict`, `Secure` em produção e sem `Domain`, então ele pertencia só ao host da API, e o front chamava a API direto pelo `NEXT_PUBLIC_API_URL`, com CORS e credenciais.
+
+**Problema:** não há garantia de que front e API fiquem no mesmo domínio registrável. Em domínios diferentes, a chamada é *cross-site*: o `SameSite=Strict` impede o envio do cookie, e a alternativa (`SameSite=None`) depende de cookies de terceiros, que o Safari já bloqueia e outros navegadores restringem.
+
+**Implementado em 04/11/2026:** o navegador conversa só com a origem do front. O `next.config.ts` faz *rewrite* de `/api/v1/*` para a API, cujo endereço fica numa variável só do servidor (`API_URL`).
+
+- O cookie passa a ser do domínio do front, como cookie primário, e funciona em qualquer domínio da API. O `SameSite=Strict` continua, o que também protege contra CSRF.
+- O `proxy.ts` passa a ser possível: ele só verifica **se o cookie existe** para redirecionar ao login antes de renderizar. A validação continua sendo da API, e o guard no cliente (`app/(authenticated)/layout.tsx`) é mantido para o 401 de sessão expirada.
+- O CORS da API deixa de ser usado pelo navegador; os headers da resposta (`x-request-id`, `RateLimit`, `X-Session-Expires-At`) ficam legíveis sem `exposedHeaders`.
+- Os uploads da Fase 3 **não** passam pelo proxy: vão direto ao storage por URL assinada.
+
+**Requisitos de deploy (verificar antes do primeiro paciente real):**
+
+- **IP real do cliente.** A auditoria (LGPD, art. 37) e o rate limit usam o IP. O proxy do Next 16.2 só adiciona `x-forwarded-host`, não `X-Forwarded-For`. Por isso, o Next deve ficar atrás de um proxy reverso ou plataforma que defina o `X-Forwarded-For`, e a `TRUST_PROXY` da API deve ser ajustada a esses intermediários (padrão `1`). Antes do primeiro paciente real, conferir com uma requisição real que o IP gravado na auditoria é o do navegador. Sem isso, todas as requisições aparecem com o IP do servidor do Next.
+- O servidor do Next não registra corpo nem query string das requisições repassadas (dados de pacientes e termos de busca).
+- O proxy tem timeout padrão de 30 s (`experimental.proxyTimeout`). Isso deve ser revisto se a exportação (Fase 4) for síncrona e lenta.
+
+### Expiração da sessão
+
+**Antes:** o JWT valia 1 h fixa, sem renovação, e a sessão caía no meio do uso. Implementado na API em 04/11/2026.
+
+**Acordado:** sessão **deslizante**, que expira após **30 min sem atividade** ou **12 h após o login** (um plantão), o que vier primeiro.
+
+- **API:** cada requisição autenticada renova o cookie com um JWT de validade curta, até o limite de 12 h contado a partir do horário do login guardado no token. Toda resposta autenticada traz o header `X-Session-Expires-At` (ISO 8601), e o `GET /auth/me` traz também `sessionExpiresAt`.
+- **Front:** guarda a expiração só em memória. A interação do usuário (teclado, clique) conta como atividade e renova a sessão em silêncio, com no máximo um `GET /auth/me` a cada 5 min, para que digitar um registro longo não derrube a sessão. Sem interação, 2 min antes de expirar aparece um aviso com "Continuar conectado" e "Sair". Perto do limite de 12 h, o aviso não oferece renovação e orienta a salvar o rascunho. Não há *polling* em segundo plano que mantenha a sessão viva sem o usuário.
+
+### Formato de erros
+
+Implementado na API em 04/11/2026:
+
+| Status | Corpo |
+|---|---|
+| 4xx (`HttpException`) | `{ code, message, timestamp }` |
+| 422 (validação) | `{ code: "VALIDATION_FAILED", message, errors: { location, path, message }[], timestamp }` |
+| 409 (chave única) | `{ code: "CONFLICT", message, timestamp }` |
+| 429 (rate limit) | `{ code: "TOO_MANY_REQUESTS", message }` + headers `RateLimit`/`RateLimit-Policy` (draft-8) |
+| 500 | `{ code: "INTERNAL_SERVER_ERROR", message }` |
+
+- **`code`** é um identificador estável (a chave da mensagem na API, ex.: `PATIENT_ARCHIVED`, `RECORD_VERSION_OUTDATED`, `INVALID_LINK_TOKEN`). O front decide o que fazer **pelo `code`**, nunca comparando a `message`. A lista completa está no schema `Error` do OpenAPI.
+- **`message`** vem em português e é o texto exibido ao usuário; pode mudar sem aviso.
+- Toda resposta traz `x-request-id`.
+
+**Acordado para o front:** o `ApiError` passa a carregar `code` e `requestId` (header `x-request-id`). O `requestId` aparece nas telas de erro para o suporte. Exemplos de uso do `code`:
+- `isInvalidTokenError` passa a checar `INVALID_LINK_TOKEN`, e não só o status 422.
+- Na edição de registro, `RECORD_VERSION_OUTDATED` recarrega o registro sem perder o texto digitado, e `PATIENT_ARCHIVED` bloqueia a ação.
+
+**Erros por campo (422):** cada item do `errors` tem `location` (`body`, `query` ou `params`), `path` (o campo, separado por pontos, como `representativeName` ou `items.0.name`; vazio quando o erro é do objeto inteiro) e `message`. Os formulários continuam validando com Zod as mesmas regras da API. Quando a API ainda assim recusar, os itens com `location: "body"` vão para o campo correspondente com o `setError` do react-hook-form, e o que não corresponder a nenhum campo aparece no toast. Os 422 de regra de negócio (link inválido, conteúdo igual ao atual etc.) vêm com `errors: []` e são tratados pelo `code`.
+
+### Paginação
+
+Os dois formatos ficam como estão:
+
+- **Pacientes, por página:** `GET /patients?search=&status=active|archived&page=1&limit=20` (`limit` de 1 a 100) → `{ items, page, limit, total, totalPages }`, ordenado por nome. A busca procura no nome (sem diferenciar acentos) ou, se só tiver dígitos, também no CPF/CNS exato. O termo vai na query da requisição à API, **nunca** na URL do navegador. A API não registra a query string nos logs, e o proxy reverso de produção também não pode registrar.
+- **Registros, por cursor:** `GET /patients/:id/records?status=active|voided&cursor=&limit=20` → `{ items, nextCursor }` (`nextCursor` é `null` na última página). O cursor evita repetir ou pular itens quando chegam registros novos durante a rolagem. No front, isso vira `useInfiniteQuery`.
+- **Versões e consentimentos** vêm como lista completa, sem paginação.
+
+### Rate limit
+
+**Antes:** `/users`, `/auth` e `/patients` dividiam um limite geral de 100 requisições por hora por IP. Isso era incompatível com o uso: abrir a lista, alguns pacientes e a linha do tempo consome dezenas de requisições, e numa instituição todos os profissionais saem pelo mesmo IP (NAT).
+
+**Implementado na API em 04/11/2026:** as rotas autenticadas (`/patients/**`, `/auth/me`, `/auth/signout`) têm limite de **300 requisições por minuto por usuário** e não consomem o limite por IP. Os limites por IP ficam só nas rotas públicas: geral de 100/h, login e redefinição de senha com 10/15 min, e-mails com 5/15 min. No front, o 429 não é repetido automaticamente (o `retry` já ignora 4xx) e exibe a mensagem da API.
+
+### Pendências na API
+
+Mudanças acordadas que dependem do `care-track-api`:
+
+- [x] Sessão deslizante (30 min / 12 h), `X-Session-Expires-At` em toda resposta autenticada e `sessionExpiresAt` no `/auth/me` e no signin. O header também é exposto no CORS, para funcionar enquanto o front chama a API de outra origem.
+- [x] Rate limit por usuário nas rotas autenticadas (300/min).
+- [x] `code` estável em todas as respostas de erro (4xx, 429 e 500).
+- [x] `errors` do 422 como `{ location, path, message }`.
+- [x] `trust proxy` configurável pela variável `TRUST_PROXY` da API (número de intermediários, padrão `1`, ou lista de IPs/sub-redes confiáveis). O valor de produção e a verificação do IP na auditoria ficam para o deploy (ver requisitos de deploy acima).
+- [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, anexos (Fase 3), relatório de acessos e exportação (Fase 4).
+
+---
+
 ## Contratos da API
 
-> **Proposta** para orientar o frontend. Substituir pelos contratos reais quando estiverem prontos.
+Rotas reais da API (prefixo `/api/v1`), conferidas em 04/11/2026. A referência completa, com corpos e respostas, é o OpenAPI da API em `/api/v1/docs` (ligado fora de produção). Todas as rotas de `/patients` exigem sessão e são auditadas.
 
-### Já existentes
+### Autenticação e conta
 
 | Método | Rota | Uso |
 |---|---|---|
-| `POST` | `/auth/signin` | Login |
-| `POST` | `/auth/signout` | Logout |
-| `GET` | `/auth/me` | Usuário logado |
+| `POST` | `/auth/signin` | Login (grava o cookie) |
+| `POST` | `/auth/signout` | Logout (204, apaga o cookie) |
+| `GET` | `/auth/me` | Usuário logado: `{ name, email, coren, corenState }` |
 | `POST` | `/users/signup` | Cadastro (nome, e-mail, senha, COREN e UF) |
 | `GET` | `/users/validate?token=` | Confirmar e-mail (link do e-mail abre `/verify-email` no front) |
 | `POST` | `/users/resend` | Reenviar e-mail de confirmação (sempre 200) |
 | `POST` | `/auth/forgot-password` | Pedir link de redefinição de senha (sempre 200) |
-| `POST` | `/auth/reset-password` | Redefinir senha com o token (link do e-mail abre `/reset-password` no front) |
+| `POST` | `/auth/reset-password` | Redefinir senha com o token (derruba as sessões abertas) |
 
-### Propostos
+### Pacientes
+
+Resposta de paciente: `{ id, name, birthDate, cpf, cns, phone, archivedAt, createdAt, updatedAt }` (opcionais vêm `null`).
 
 | Método | Rota | Uso |
 |---|---|---|
-| `GET` | `/patients?search=&page=&status=` | Listar/buscar (busca idealmente via `POST /patients/search` para não expor termos em logs de URL) |
-| `POST` | `/patients` | Cadastrar |
+| `GET` | `/patients?search=&status=&page=&limit=` | Listar/buscar → `{ items, page, limit, total, totalPages }` |
+| `POST` | `/patients` | Cadastrar `{ name, birthDate, cpf?, cns?, phone? }` → 201 |
 | `GET` | `/patients/:id` | Detalhe |
-| `PATCH` | `/patients/:id` | Editar dados cadastrais |
-| `POST` | `/patients/:id/archive` · `/unarchive` | Arquivar/reativar |
-| `GET` | `/patients/:id/records?page=&type=` | Histórico |
-| `POST` | `/patients/:id/records` | Novo registro |
-| `POST` | `/patients/:id/records/:recordId/rectify` | Retificar registro |
-| `POST` | `/patients/:id/records/:recordId/attachments` | Iniciar upload (retorna URL assinada) |
-| `GET` | `/attachments/:id` | URL temporária para visualizar/baixar |
-| `GET` | `/patients/:id/audit` | Auditoria |
-| `GET` | `/patients/:id/export` | Exportação (direitos do titular) |
+| `PUT` | `/patients/:id` | Editar (corpo completo, como no cadastro). 409 se arquivado |
+| `POST` | `/patients/:id/archive` · `/unarchive` | Arquivar/reativar. 409 se já estiver no estado pedido |
+
+### Consentimentos
+
+| Método | Rota | Uso |
+|---|---|---|
+| `GET` | `/patients/:id/consents` | Listar |
+| `POST` | `/patients/:id/consents` | Registrar `{ type: "image_capture", method: "written"\|"verbal", grantor: "patient"\|"legal_representative", representativeName?, collectedAt? }`. Paciente menor exige responsável legal; 409 se já houver um ativo do mesmo tipo |
+| `POST` | `/patients/:id/consents/:consentId/revoke` | Revogar `{ reason? }` |
+
+### Registros do histórico
+
+Resposta de registro: `{ id, patientId, content, version, author: { id, name, coren, corenState }, createdAt, editedAt, voidedAt, voidReason, voidReasonDetails }`.
+
+| Método | Rota | Uso |
+|---|---|---|
+| `GET` | `/patients/:id/records?status=&cursor=&limit=` | Linha do tempo → `{ items, nextCursor }` |
+| `POST` | `/patients/:id/records` | Criar `{ content }`. 409 se paciente arquivado |
+| `PUT` | `/patients/:id/records/:recordId` | Editar `{ content, version, reason? }`. 409 se a versão estiver desatualizada; 422 se o conteúdo não mudou |
+| `GET` | `/patients/:id/records/:recordId/versions` | Versões, da mais nova para a mais antiga |
+| `POST` | `/patients/:id/records/:recordId/void` | Anular `{ reason: "wrong_patient"\|"duplicate"\|"other", details? }` (definitivo) |
+
+### Ainda não existem
+
+| Uso | Fase |
+|---|---|
+| Editar o perfil (nome, COREN/UF) | 0 |
+| Anexos: iniciar upload (URL assinada) e obter URL temporária de visualização | 3 |
+| Relatório de acessos do paciente (a partir da auditoria) | 4 |
+| Exportação dos dados do paciente | 4 |
 
 ---
 
 ## Decisões em aberto
 
-- O app atende **enfermeiros autônomos**, **instituições** ou ambos? Isso define se o paciente pertence ao profissional ou à organização (e quem é o controlador dos dados na LGPD).
-- Pacientes podem ser **compartilhados** entre profissionais?
-- Onde ficam os anexos (S3, GCS, outro) e qual o limite de tamanho por arquivo?
-- Os pacientes incluem **menores de idade**?
-- Haverá **exclusão definitiva** após o prazo legal? Qual processo?
+Já respondidas pela API (detalhes no `docs/roadmap.md` dela):
+
+- **Dono do paciente:** a enfermeira que o cadastrou. Ela é a controladora dos dados dos pacientes, e o CareTrack é o operador.
+- **Compartilhamento entre profissionais:** fica para depois.
+- **Anexos:** armazenamento compatível com S3, bucket privado, de preferência em região no Brasil, com limite por arquivo configurável. O provedor ainda será escolhido na Fase 3.
+- **Menores de idade:** sim. O consentimento de imagem de menor exige o responsável legal.
+- **Exclusão definitiva:** não existe no app. Só como procedimento administrativo do operador (ordem judicial ou da ANPD), registrado na auditoria.
+
+Ainda em aberto:
+
+- Domínios de produção do front e da API, e a topologia de deploy (define o `trust proxy` e a origem do `X-Forwarded-For`).
+- Formato do conteúdo do registro quando houver anexos (proposta da API: Markdown com `attachment:<id>`).

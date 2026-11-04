@@ -1,4 +1,3 @@
-import { API_URL } from "@/settings";
 import { ApiError } from "@/shared/ApiError";
 import axios from "axios";
 
@@ -17,7 +16,7 @@ declare module "axios" {
 }
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: "/api/v1",
   withCredentials: true,
 });
 
