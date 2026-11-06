@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatWithMask, isValidCpf, onlyDigits } from "./masks";
+import { formatWithMask, isValidCpf, maskCpf, normalizeSearch, onlyDigits } from "./masks";
 
 describe("onlyDigits", () => {
   it("remove tudo que não é dígito", () => {
@@ -35,5 +35,31 @@ describe("isValidCpf", () => {
     expect(isValidCpf("5299822472")).toBe(false);
     expect(isValidCpf("529982247250")).toBe(false);
     expect(isValidCpf("11111111111")).toBe(false);
+  });
+});
+
+describe("maskCpf", () => {
+  it("mostra só os dígitos do meio", () => {
+    expect(maskCpf("52998224725")).toBe("***.982.247-**");
+  });
+
+  it("esconde tudo quando o valor não tem 11 dígitos", () => {
+    expect(maskCpf("123")).toBe("***.***.***-**");
+  });
+});
+
+describe("normalizeSearch", () => {
+  it("tira a máscara de CPF e Cartão SUS", () => {
+    expect(normalizeSearch(" 529.982.247-25 ")).toBe("52998224725");
+    expect(normalizeSearch("898 0011 6066 0004")).toBe("898001160660004");
+  });
+
+  it("mantém nomes e junta espaços repetidos", () => {
+    expect(normalizeSearch("  maria   josé ")).toBe("maria josé");
+    expect(normalizeSearch("José 2")).toBe("José 2");
+  });
+
+  it("devolve vazio para busca em branco", () => {
+    expect(normalizeSearch("   ")).toBe("");
   });
 });

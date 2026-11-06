@@ -40,3 +40,23 @@ export function isValidCpf(value: string) {
     cpfCheckDigit(digits.slice(0, 10)) === digits[10]
   );
 }
+
+export function maskCpf(value: string) {
+  const cpf = onlyDigits(value);
+
+  if (cpf.length !== 11) {
+    return "***.***.***-**";
+  }
+
+  return `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**`;
+}
+
+export function normalizeSearch(value: string) {
+  const term = value.trim().replace(/\s+/g, " ");
+
+  if (/\d/.test(term) && /^[\d.\-/ ]+$/.test(term)) {
+    return onlyDigits(term);
+  }
+
+  return term;
+}

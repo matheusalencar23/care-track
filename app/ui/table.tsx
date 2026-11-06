@@ -16,6 +16,9 @@ interface Props<T> {
   loadingRows?: number;
 }
 
+export const rowLinkClassName =
+  "after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white/40";
+
 const cellClassName =
   "flex items-start justify-between gap-4 px-4 py-1.5 text-sm before:shrink-0 before:text-slate-300 before:content-[attr(data-label)] sm:table-cell sm:py-3 sm:before:content-none";
 
@@ -66,7 +69,7 @@ export default function Table<T>({
             : rows.map((row) => (
                 <tr
                   key={getRowKey(row)}
-                  className="block border-b border-white/10 py-2 transition-colors last:border-b-0 hover:bg-white/5 sm:table-row sm:py-0"
+                  className="group relative block border-b border-white/10 py-2 transition-colors last:border-b-0 hover:bg-white/5 sm:table-row sm:py-0"
                 >
                   {columns.map((column) => (
                     <td

@@ -1,5 +1,12 @@
+import type { PatientListParams } from "@/model/patient";
+
 export const queryKeys = {
   auth: {
     me: ["auth", "me"] as const,
+  },
+  patients: {
+    all: ["patients"] as const,
+    list: (params: PatientListParams) =>
+      ["patients", "list", params] as const,
   },
 };

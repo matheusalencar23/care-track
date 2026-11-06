@@ -86,11 +86,13 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [x] Páginas de Política de Privacidade (`/privacidade`) e Termos de Uso (`/termos`), com aceite obrigatório no cadastro. A API grava a versão aceita, com data e hora, numa tabela só de inclusão.
   - [ ] Preencher os marcadores de `lib/legal.ts` (responsável, CNPJ/CPF, endereço, encarregado, e-mails de privacidade e de suporte, provedor e local da hospedagem, mecanismo de transferência internacional do Resend, prazos e foro) e passar os textos pela revisão jurídica antes do primeiro paciente real.
   - [ ] Novo aceite de quem já tem conta quando os termos mudarem (depende da API: versão aceita no `/auth/me` e rota para registrar o aceite).
+- [ ] Layout do formulário de cadastro (`/signup`): com nome, e-mail, COREN e UF, senha e aceite dos termos, o formulário ficou alto demais. Aproveitar a largura da tela em telas maiores (ex.: cartão mais largo com duas colunas, nome e e-mail lado a lado, COREN/UF ao lado da senha), mantendo uma coluna no celular e a ordem lógica de leitura e de tabulação.
+- [ ] Links de Termos de Uso e Política de Privacidade na área logada: tirar do rodapé fixo e levar para um lugar mais adequado (ex.: menu do usuário no cabeçalho, junto de "Meu perfil", ou uma futura tela de informações de privacidade da Fase 4). Os documentos continuam acessíveis a partir de qualquer página logada; nas páginas públicas, os links continuam no rodapé.
 
 ### Fase 1 — Pacientes
 
-- [ ] Modelo `Patient` conforme a API: nome, data de nascimento e, opcionais, CPF, Cartão SUS (CNS) e telefone (só dígitos). Nome social, sexo e observações clínicas **não existem** na API; incluir só com decisão de minimização registrada lá.
-- [ ] **Listagem** (`/pacientes`): busca no servidor com debounce (nome sem acento, ou CPF/CNS exatos), paginação por página, filtro ativos/arquivados, estado vazio, carregamento e erro; dados sensíveis mascarados.
+- [ ] Modelo `Patient` conforme a API (tipo em `model/patient.ts` criado com a listagem; falta o corpo do cadastro): nome, data de nascimento e, opcionais, CPF, Cartão SUS (CNS) e telefone (só dígitos). Nome social, sexo e observações clínicas **não existem** na API; incluir só com decisão de minimização registrada lá.
+- [x] **Listagem** (`/pacientes`): busca no servidor com debounce (nome sem acento, ou CPF/CNS exatos), paginação por página, filtro ativos/arquivados, estado vazio, carregamento e erro; dados sensíveis mascarados. Implementada em 06/11/2026: busca, filtro e página ficam só no estado do componente (nunca na URL), o CPF aparece como `***.456.789-**` e a lista não mostra Cartão SUS nem telefone; cache das listas com `gcTime` de 1 min.
 - [ ] **Cadastro** (`/pacientes/novo`): formulário com Zod, máscaras e as mesmas validações da API (CPF com dígito verificador, CNS com 15 dígitos, telefone com DDD, nascimento entre 1900 e hoje).
 - [ ] **Detalhe** (`/pacientes/<id>`): dados cadastrais + histórico (Fase 2).
 - [ ] **Edição** (`/pacientes/<id>/editar`) dos dados cadastrais (`PUT`, corpo completo). Paciente arquivado não é editável (409).

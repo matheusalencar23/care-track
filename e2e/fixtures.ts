@@ -8,17 +8,62 @@ export const nurse = {
   corenState: "SP",
 };
 
+export interface FakePatient {
+  id: string;
+  name: string;
+  birthDate: string;
+  cpf: string | null;
+  cns: string | null;
+  phone: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function fakePatient(overrides: Partial<FakePatient> & Pick<FakePatient, "id" | "name">): FakePatient {
+  return {
+    birthDate: "1950-03-15",
+    cpf: null,
+    cns: null,
+    phone: null,
+    archivedAt: null,
+    createdAt: "2026-01-01T12:00:00.000Z",
+    updatedAt: "2026-01-01T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export const defaultPatients: FakePatient[] = [
+  fakePatient({ id: "0b6f1c2a-1111-4000-8000-000000000001", name: "José Antônio Pereira", cpf: "52998224725" }),
+  fakePatient({ id: "0b6f1c2a-1111-4000-8000-000000000002", name: "Maria das Dores", birthDate: "1962-08-20", cns: "898001160660004" }),
+  fakePatient({
+    id: "0b6f1c2a-1111-4000-8000-000000000003",
+    name: "Benedita Ramos",
+    birthDate: "1938-12-02",
+    archivedAt: "2026-10-01T12:00:00.000Z",
+  }),
+];
+
 const SESSION_IDLE_MS = 30 * 60 * 1000;
+
+function withoutAccents(value: string) {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
 
 interface ApiOptions {
   signedIn?: boolean;
   meStatus?: number;
+  patients?: FakePatient[];
+  patientsStatus?: number;
 }
 
 export class FakeApi {
   signedIn: boolean;
   meStatus?: number;
+  patients: FakePatient[];
+  patientsStatus?: number;
   readonly calls: string[] = [];
+  readonly patientQueries: URLSearchParams[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -28,6 +73,8 @@ export class FakeApi {
   ) {
     this.signedIn = options.signedIn ?? false;
     this.meStatus = options.meStatus;
+    this.patients = options.patients ?? defaultPatients;
+    this.patientsStatus = options.patientsStatus;
   }
 
   async install() {
@@ -82,6 +129,10 @@ export class FakeApi {
       });
     }
 
+    if (call === "GET /patients") {
+      return this.listPatients(route, new URL(request.url()).searchParams);
+    }
+
     if (call === "POST /auth/signin") {
       const body = request.postDataJSON() as { email: string; password: string };
 
@@ -112,6 +163,45 @@ export class FakeApi {
     }
 
     return route.fulfill({ status: 404, json: { code: "NOT_FOUND", message: "Rota não simulada" } });
+  }
+
+  private listPatients(route: Route, query: URLSearchParams) {
+    this.patientQueries.push(query);
+
+    if (this.patientsStatus) {
+      return route.fulfill({
+        status: this.patientsStatus,
+        json: { code: "INTERNAL_SERVER_ERROR", message: "Ocorreu um erro inesperado." },
+        headers: { "x-request-id": "req-e2e-patients" },
+      });
+    }
+
+    const search = query.get("search") ?? "";
+    const archived = query.get("status") === "archived";
+    const page = Number(query.get("page") ?? 1);
+    const limit = Number(query.get("limit") ?? 20);
+    const digits = /^\d+$/.test(search);
+
+    const matches = this.patients
+      .filter((patient) => Boolean(patient.archivedAt) === archived)
+      .filter(
+        (patient) =>
+          !search ||
+          withoutAccents(patient.name).includes(withoutAccents(search)) ||
+          (digits && (patient.cpf === search || patient.cns === search)),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+
+    return route.fulfill({
+      json: {
+        items: matches.slice((page - 1) * limit, page * limit),
+        page,
+        limit,
+        total: matches.length,
+        totalPages: Math.ceil(matches.length / limit),
+      },
+      headers: this.sessionHeaders(),
+    });
   }
 }
 
