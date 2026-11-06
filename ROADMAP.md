@@ -56,7 +56,7 @@ Regras para qualquer código novo:
 - **Logout automático por inatividade**, com aviso antes de expirar.
 - **Sem rastreadores ou analytics de terceiros.** Monitoramento de erros (ex.: Sentry) só com remoção de dados pessoais antes do envio.
 - **Anexos nunca públicos**: acessados por URLs autenticadas ou assinadas de curta duração, sem cache no navegador.
-- **Cabeçalhos de segurança** no `next.config.ts`: `Content-Security-Policy`, `X-Frame-Options`/`frame-ancestors`, `Referrer-Policy: no-referrer`, `Permissions-Policy`.
+- **Cabeçalhos de segurança** (implementados em 06/11/2026): `Content-Security-Policy` com nonce por requisição e `'strict-dynamic'` para scripts, `connect-src 'self'` e `frame-ancestors 'none'`, gerada no `proxy.ts`; `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Permissions-Policy` (sem câmera, microfone e localização; rever se a Fase 3 usar a câmera pelo navegador), `Cross-Origin-Opener-Policy` e HSTS no `next.config.ts`. Estilos ficam com `'unsafe-inline'`. A Fase 3 precisa liberar na CSP o domínio do storage dos anexos (`img-src`, `media-src` e, para o upload direto, `connect-src`).
 - **Dados mascarados por padrão** em listas (ex.: CPF `***.456.789-**`).
 - A autorização real (cada enfermeiro só acessa seus pacientes) é **sempre** da API; o frontend apenas reflete.
 
@@ -78,7 +78,7 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
   - [x] Listagem: `Table` (vira cartões no celular), `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
   - [x] Diálogos: `Modal` (com `<dialog>` nativo) e `ConfirmDialog`; `Button` com variantes.
 - [x] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão).
-- [ ] Cabeçalhos de segurança no `next.config.ts`.
+- [x] Cabeçalhos de segurança: CSP com nonce por requisição no `proxy.ts` (todas as páginas passam a ser renderizadas por requisição) e os demais cabeçalhos no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
 - [x] Incluir **COREN + UF** no cadastro.
@@ -218,6 +218,7 @@ Mudanças acordadas que dependem do `care-track-api`:
 - [x] `code` estável em todas as respostas de erro (4xx, 429 e 500).
 - [x] `errors` do 422 como `{ location, path, message }`.
 - [x] `trust proxy` configurável pela variável `TRUST_PROXY` da API (número de intermediários, padrão `1`, ou lista de IPs/sub-redes confiáveis). O valor de produção e a verificação do IP na auditoria ficam para o deploy (ver requisitos de deploy acima).
+- [ ] `Cache-Control: no-store` nas respostas da API. Hoje elas vão sem `Cache-Control` e com `ETag`, então o navegador pode gravá-las no cache em disco; com dados de pacientes, isso quebraria a regra de cache só em memória. **Bloqueia** a Fase 1.
 - [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, anexos (Fase 3), relatório de acessos e exportação (Fase 4).
 
 ---

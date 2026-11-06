@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import "./globals.css";
 import { inter } from "./ui/fonts";
 import { Providers } from "./providers";
@@ -8,11 +9,13 @@ export const metadata: Metadata = {
   description: "Aplicação para acompanhamento de pacientes",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
+
   return (
     <html lang="pt-BR" className={`${inter.className}`}>
       <body className="relative isolate min-h-screen bg-slate-950">

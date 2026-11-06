@@ -8,6 +8,21 @@ if (!apiUrl) {
   );
 }
 
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "no-referrer" },
+  {
+    key: "Permissions-Policy",
+    value:
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), browsing-topics=()",
+  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  ...(process.env.NODE_ENV === "production"
+    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000" }]
+    : []),
+];
+
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
@@ -29,10 +44,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Páginas abertas pelos links enviados por e-mail recebem um token de
-        // uso único na URL: não o repassa no cabeçalho Referer.
-        source: "/:path(verify-email|reset-password)",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        source: "/:path*",
+        headers: securityHeaders,
       },
     ];
   },
