@@ -91,9 +91,12 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 
 ### Fase 1 — Pacientes
 
-- [ ] Modelo `Patient` conforme a API (tipo em `model/patient.ts` criado com a listagem; falta o corpo do cadastro): nome, data de nascimento e, opcionais, CPF, Cartão SUS (CNS) e telefone (só dígitos). Nome social, sexo e observações clínicas **não existem** na API; incluir só com decisão de minimização registrada lá.
+- [x] Modelo `Patient` conforme a API: nome, data de nascimento e, opcionais, CPF, Cartão SUS (CNS) e telefone (só dígitos). Nome social, sexo e observações clínicas **não existem** na API; incluir só com decisão de minimização registrada lá. Em `model/patient.ts` (06/11/2026), conferido com o `patient.schema.ts` da API: `Patient` (resposta, opcionais vêm `null`) e `PatientData` (corpo do `POST` e do `PUT`).
+  - Opcional vazio é **omitido** do corpo: a API não aceita `null` nem `""` (o `""` falha na validação do CPF/CNS/telefone) e grava `null` quando o campo falta. No `PUT`, omitir apaga o valor.
+  - Regras da API para o Zod do formulário: nome obrigatório, sem espaços nas pontas, até 200 caracteres; nascimento `AAAA-MM-DD` entre 1900-01-01 e hoje; CPF com dígito verificador; CNS com 15 dígitos (sem dígito verificador); telefone com 10 ou 11 dígitos.
+  - CPF e CNS são únicos por enfermeiro, mas a duplicidade volta como o `CONFLICT` genérico ("Este registro já existe."), sem dizer qual campo. Ver [Pendências na API](#pendências-na-api).
 - [x] **Listagem** (`/pacientes`): busca no servidor com debounce (nome sem acento, ou CPF/CNS exatos), paginação por página, filtro ativos/arquivados, estado vazio, carregamento e erro; dados sensíveis mascarados. Implementada em 06/11/2026: busca, filtro e página ficam só no estado do componente (nunca na URL), o CPF aparece como `***.456.789-**` e a lista não mostra Cartão SUS nem telefone; cache das listas com `gcTime` de 1 min.
-- [ ] **Cadastro** (`/pacientes/novo`): formulário com Zod, máscaras e as mesmas validações da API (CPF com dígito verificador, CNS com 15 dígitos, telefone com DDD, nascimento entre 1900 e hoje).
+- [x] **Cadastro** (`/pacientes/novo`): formulário com Zod, máscaras e as mesmas validações da API (CPF com dígito verificador, CNS com 15 dígitos, telefone com DDD, nascimento entre 1900 e hoje). Implementado em 06/11/2026: o `PatientForm` (`pacientes/components/patient-form.tsx`) fica pronto para a edição; os erros por campo do 422 vão para o campo (`applyFieldErrors`, `lib/form-errors.ts`) e o CPF/CNS duplicado aparece no toast. Depois de cadastrar, volta para a lista; passa a abrir o detalhe quando ele existir.
 - [ ] **Detalhe** (`/pacientes/<id>`): dados cadastrais + histórico (Fase 2).
 - [ ] **Edição** (`/pacientes/<id>/editar`) dos dados cadastrais (`PUT`, corpo completo). Paciente arquivado não é editável (409).
 - [ ] **Arquivar/reativar** com `ConfirmDialog` explicando que o prontuário é mantido; filtro "arquivados" na listagem.
@@ -224,6 +227,7 @@ Mudanças acordadas que dependem do `care-track-api`:
 - [x] `trust proxy` configurável pela variável `TRUST_PROXY` da API (número de intermediários, padrão `1`, ou lista de IPs/sub-redes confiáveis). O valor de produção e a verificação do IP na auditoria ficam para o deploy (ver requisitos de deploy acima).
 - [x] `Cache-Control: no-store` em todas as respostas da API e ETag desligado, para o navegador não gravar dados de pacientes no cache em disco.
 - [x] Corpo da requisição ilegível responde 4xx em vez de 500: JSON malformado vira 400 com `code: "INVALID_REQUEST_BODY"`, e corpo acima do limite (100 KB) vira 413 com `REQUEST_BODY_TOO_LARGE`.
+- [ ] Código próprio para CPF ou Cartão SUS já cadastrado (ex.: `PATIENT_CPF_ALREADY_EXISTS`, `PATIENT_CNS_ALREADY_EXISTS`), no lugar do `CONFLICT` genérico da chave única, para o formulário apontar o campo. Até lá, o front mostra a mensagem genérica no toast.
 - [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, anexos (Fase 3), relatório de acessos e exportação (Fase 4).
 
 ---

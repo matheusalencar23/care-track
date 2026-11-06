@@ -64,6 +64,7 @@ export class FakeApi {
   patientsStatus?: number;
   readonly calls: string[] = [];
   readonly patientQueries: URLSearchParams[] = [];
+  readonly createdPatients: unknown[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -133,6 +134,10 @@ export class FakeApi {
       return this.listPatients(route, new URL(request.url()).searchParams);
     }
 
+    if (call === "POST /patients") {
+      return this.createPatient(route, request.postDataJSON());
+    }
+
     if (call === "POST /auth/signin") {
       const body = request.postDataJSON() as { email: string; password: string };
 
@@ -163,6 +168,30 @@ export class FakeApi {
     }
 
     return route.fulfill({ status: 404, json: { code: "NOT_FOUND", message: "Rota não simulada" } });
+  }
+
+  private createPatient(route: Route, body: Partial<FakePatient>) {
+    this.createdPatients.push(body);
+
+    const duplicate = this.patients.some(
+      (patient) => (body.cpf && patient.cpf === body.cpf) || (body.cns && patient.cns === body.cns),
+    );
+
+    if (duplicate) {
+      return route.fulfill({ status: 409, json: { code: "CONFLICT", message: "Este registro já existe." } });
+    }
+
+    const patient = fakePatient({
+      id: `0b6f1c2a-3333-4000-8000-${String(this.patients.length).padStart(12, "0")}`,
+      name: body.name ?? "",
+      birthDate: body.birthDate,
+      cpf: body.cpf ?? null,
+      cns: body.cns ?? null,
+      phone: body.phone ?? null,
+    });
+    this.patients = [...this.patients, patient];
+
+    return route.fulfill({ status: 201, json: patient, headers: this.sessionHeaders() });
   }
 
   private listPatients(route: Route, query: URLSearchParams) {

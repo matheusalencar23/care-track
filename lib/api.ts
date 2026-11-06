@@ -1,10 +1,25 @@
 import { clearSession, recordSessionExpiry } from "@/lib/session";
-import { ApiError } from "@/shared/ApiError";
+import { ApiError, type ValidationIssue } from "@/shared/ApiError";
 import axios from "axios";
 
 interface ApiErrorResponse {
   code?: string;
   message?: string;
+  errors?: unknown;
+}
+
+function isValidationIssue(value: unknown): value is ValidationIssue {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const issue = value as Record<string, unknown>;
+
+  return (
+    typeof issue.location === "string" &&
+    typeof issue.path === "string" &&
+    typeof issue.message === "string"
+  );
 }
 
 declare module "axios" {
@@ -63,11 +78,13 @@ api.interceptors.response.use(
         "Ocorreu um erro inesperado. Por favor, entre em contato com o suporte.";
 
       const requestId = error.response.headers["x-request-id"];
+      const errors = error.response.data?.errors;
 
       throw new ApiError(message, {
         statusCode: error.response.status,
         code: error.response.data?.code,
         requestId: typeof requestId === "string" ? requestId : undefined,
+        errors: Array.isArray(errors) ? errors.filter(isValidationIssue) : [],
       });
     }
 

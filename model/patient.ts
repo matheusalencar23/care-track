@@ -10,6 +10,14 @@ export interface Patient {
   updatedAt: string;
 }
 
+export interface PatientData {
+  name: string;
+  birthDate: string;
+  cpf?: string;
+  cns?: string;
+  phone?: string;
+}
+
 export type PatientStatus = "active" | "archived";
 
 export interface PatientListParams {

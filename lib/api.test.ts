@@ -99,6 +99,24 @@ describe("api", () => {
     expect(hasErrorCode(error, "PATIENT_NOT_FOUND")).toBe(false);
   });
 
+  it("guarda os erros por campo do 422", async () => {
+    respondWith({
+      status: 422,
+      data: {
+        code: "VALIDATION_FAILED",
+        message: "Dados inválidos. Verifique os campos e tente novamente.",
+        errors: [{ location: "body", path: "cpf", message: "CPF inválido" }, "lixo"],
+      },
+    });
+
+    const error = await captureError(api.post("/patients", {}));
+
+    expect(error).toMatchObject({
+      code: "VALIDATION_FAILED",
+      errors: [{ location: "body", path: "cpf", message: "CPF inválido" }],
+    });
+  });
+
   it("usa uma mensagem genérica quando a API não manda uma", async () => {
     respondWith({ status: 500, data: "<html>" });
 

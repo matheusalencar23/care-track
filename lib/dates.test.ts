@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageOn, formatAge, formatDate } from "./dates";
+import { ageOn, formatAge, formatDate, todayIso } from "./dates";
 
 const today = new Date(2026, 10, 6);
 
@@ -23,5 +23,11 @@ describe("formatAge", () => {
     expect(formatAge("2025-11-06", today)).toBe("1 ano");
     expect(formatAge("1990-01-01", today)).toBe("36 anos");
     expect(formatAge("2026-05-01", today)).toBe("menos de 1 ano");
+  });
+});
+
+describe("todayIso", () => {
+  it("usa a data local, não a de UTC", () => {
+    expect(todayIso(new Date(2026, 0, 5, 23, 30))).toBe("2026-01-05");
   });
 });

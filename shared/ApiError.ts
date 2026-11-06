@@ -1,19 +1,28 @@
+export interface ValidationIssue {
+  location: string;
+  path: string;
+  message: string;
+}
+
 interface ApiErrorDetails {
   statusCode?: number;
   code?: string;
   requestId?: string;
+  errors?: ValidationIssue[];
 }
 
 export class ApiError extends Error {
   public readonly statusCode?: number;
   public readonly code?: string;
   public readonly requestId?: string;
+  public readonly errors: ValidationIssue[];
 
   constructor(message: string, details: ApiErrorDetails = {}) {
     super(message);
     this.statusCode = details.statusCode;
     this.code = details.code;
     this.requestId = details.requestId;
+    this.errors = details.errors ?? [];
   }
 }
 
