@@ -9,4 +9,5 @@ export interface User {
 
 export interface SignupData extends User {
   password: string;
+  acceptedTermsVersion: string;
 }

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import logo from "../public/logo.png";
 import Link from "next/link";
+import LegalLinks from "./ui/legal-links";
 
 export default function Home() {
   return (
@@ -40,6 +41,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <footer className="px-6 pb-8">
+        <LegalLinks />
+      </footer>
     </main>
   );
 }

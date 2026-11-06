@@ -83,7 +83,9 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
 - [x] Incluir **COREN + UF** no cadastro.
 - [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**. A página `/perfil` já mostra os dados (só leitura, via `GET /auth/me`); a edição depende de rota nova na API.
-- [ ] Páginas de Política de Privacidade e Termos de Uso, com aceite no cadastro.
+- [x] Páginas de Política de Privacidade (`/privacidade`) e Termos de Uso (`/termos`), com aceite obrigatório no cadastro. A API grava a versão aceita, com data e hora, numa tabela só de inclusão.
+  - [ ] Preencher os marcadores de `lib/legal.ts` (responsável, CNPJ/CPF, endereço, encarregado, e-mails de privacidade e de suporte, provedor e local da hospedagem, mecanismo de transferência internacional do Resend, prazos e foro) e passar os textos pela revisão jurídica antes do primeiro paciente real.
+  - [ ] Novo aceite de quem já tem conta quando os termos mudarem (depende da API: versão aceita no `/auth/me` e rota para registrar o aceite).
 
 ### Fase 1 — Pacientes
 
@@ -235,7 +237,7 @@ Rotas reais da API (prefixo `/api/v1`), conferidas em 04/11/2026. A referência 
 | `POST` | `/auth/signin` | Login (grava o cookie) |
 | `POST` | `/auth/signout` | Logout (204, apaga o cookie) |
 | `GET` | `/auth/me` | Usuário logado: `{ name, email, coren, corenState }` |
-| `POST` | `/users/signup` | Cadastro (nome, e-mail, senha, COREN e UF) |
+| `POST` | `/users/signup` | Cadastro (nome, e-mail, senha, COREN, UF e `acceptedTermsVersion`, a versão dos termos aceita) |
 | `GET` | `/users/validate?token=` | Confirmar e-mail (link do e-mail abre `/verify-email` no front) |
 | `POST` | `/users/resend` | Reenviar e-mail de confirmação (sempre 200) |
 | `POST` | `/auth/forgot-password` | Pedir link de redefinição de senha (sempre 200) |

@@ -19,6 +19,7 @@ export class FakeApi {
   signedIn: boolean;
   meStatus?: number;
   readonly calls: string[] = [];
+  readonly signupBodies: unknown[] = [];
 
   constructor(
     private readonly page: Page,
@@ -95,6 +96,12 @@ export class FakeApi {
       await this.setCookie();
 
       return route.fulfill({ json: { message: "ok" }, headers: this.sessionHeaders() });
+    }
+
+    if (call === "POST /users/signup") {
+      this.signupBodies.push(request.postDataJSON());
+
+      return route.fulfill({ status: 201, json: {} });
     }
 
     if (call === "POST /auth/signout") {

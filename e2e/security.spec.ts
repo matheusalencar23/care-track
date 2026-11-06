@@ -1,6 +1,14 @@
 import { expect, test } from "./fixtures";
 
-const publicPages = ["/", "/login", "/signup", "/forgot-password", "/verify-email"];
+const publicPages = [
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/verify-email",
+  "/termos",
+  "/privacidade",
+];
 
 for (const path of publicPages) {
   test(`${path} carrega sem violar a CSP`, async ({ page, cspViolations }) => {

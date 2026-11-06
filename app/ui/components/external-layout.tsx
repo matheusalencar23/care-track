@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import logo from "../../../public/logo.png";
 import Card from "../card";
+import LegalLinks from "../legal-links";
 
 interface Props {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ interface Props {
 
 export default function ExternalLayout({ title, children }: Props) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-10">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 py-10">
       <Card>
         <div className="mb-6 flex flex-col items-center">
           <Image src={logo} alt="Logo" className="w-50 mb-2" loading="eager" />
@@ -24,6 +25,8 @@ export default function ExternalLayout({ title, children }: Props) {
 
         {children}
       </Card>
+
+      <LegalLinks />
     </main>
   );
 }

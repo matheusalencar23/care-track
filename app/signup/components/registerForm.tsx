@@ -1,11 +1,14 @@
 "use client";
 
 import Button from "@/app/ui/button";
+import Checkbox from "@/app/ui/checkbox";
 import Input from "@/app/ui/input";
 import Select from "@/app/ui/select";
 import { useSignup } from "@/hooks/auth/useSignup";
+import { TERMS_VERSION } from "@/lib/legal";
 import { BRAZILIAN_STATES } from "@/shared/brazilianStates";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
@@ -21,6 +24,10 @@ const schema = z.object({
     .string()
     .min(8, "A senha deve ter pelo menos 8 caracteres")
     .max(72, "A senha deve ter no máximo 72 caracteres"),
+  acceptedTerms: z.literal(
+    true,
+    "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade",
+  ),
 });
 
 type RegisterData = z.infer<typeof schema>;
@@ -36,7 +43,14 @@ export default function RegisterForm() {
   });
 
   function onSubmit(data: RegisterData) {
-    signup(data);
+    signup({
+      name: data.name,
+      email: data.email,
+      coren: data.coren,
+      corenState: data.corenState,
+      password: data.password,
+      acceptedTermsVersion: TERMS_VERSION,
+    });
   }
 
   return (
@@ -93,6 +107,32 @@ export default function RegisterForm() {
         placeholder="Digite sua senha"
         error={errors.password?.message}
         {...register("password")}
+      />
+
+      <Checkbox
+        label={
+          <>
+            Li e aceito os{" "}
+            <Link
+              href="/termos"
+              target="_blank"
+              className="font-semibold text-white underline hover:text-teal-300"
+            >
+              Termos de Uso
+            </Link>{" "}
+            e estou ciente da{" "}
+            <Link
+              href="/privacidade"
+              target="_blank"
+              className="font-semibold text-white underline hover:text-teal-300"
+            >
+              Política de Privacidade
+            </Link>
+            . Os links abrem em outra aba.
+          </>
+        }
+        error={errors.acceptedTerms?.message}
+        {...register("acceptedTerms")}
       />
 
       <Button disabled={isPending}>
