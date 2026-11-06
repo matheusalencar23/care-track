@@ -77,7 +77,7 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
   - [x] Campos de formulário: `Field` comum (rótulo, dica e erro acessíveis), `Textarea`, `DateInput`, `MaskedInput` (com `react-imask`) com máscaras de CPF, telefone e Cartão SUS, que entrega só os dígitos, e validação de CPF igual à da API (`lib/masks.ts`).
   - [x] Listagem: `Table` (vira cartões no celular), `Pagination`, `EmptyState`, `Skeleton`, `Badge`.
   - [x] Diálogos: `Modal` (com `<dialog>` nativo) e `ConfirmDialog`; `Button` com variantes.
-- [ ] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão) (depende da API).
+- [x] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão).
 - [ ] Cabeçalhos de segurança no `next.config.ts`.
 - [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
@@ -171,7 +171,7 @@ Definidos em 04/11/2026. Cada item diz o que a API faz **hoje** e o que foi acor
 **Acordado:** sessão **deslizante**, que expira após **30 min sem atividade** ou **12 h após o login** (um plantão), o que vier primeiro.
 
 - **API:** cada requisição autenticada renova o cookie com um JWT de validade curta, até o limite de 12 h contado a partir do horário do login guardado no token. Toda resposta autenticada traz o header `X-Session-Expires-At` (ISO 8601), e o `GET /auth/me` traz também `sessionExpiresAt`.
-- **Front:** guarda a expiração só em memória. A interação do usuário (teclado, clique) conta como atividade e renova a sessão em silêncio, com no máximo um `GET /auth/me` a cada 5 min, para que digitar um registro longo não derrube a sessão. Sem interação, 2 min antes de expirar aparece um aviso com "Continuar conectado" e "Sair". Perto do limite de 12 h, o aviso não oferece renovação e orienta a salvar o rascunho. Não há *polling* em segundo plano que mantenha a sessão viva sem o usuário.
+- **Front (implementado em 04/11/2026):** guarda a expiração só em memória, corrigida pelo header `Date` da mesma resposta (o relógio do computador pode estar errado), e sincroniza as abas por `BroadcastChannel`: a atividade numa aba vale para todas, e o "Sair" numa aba encerra as outras e limpa o cache delas. O logout espera qualquer renovação em andamento, para que ela não recrie o cookie depois do signout. A interação do usuário (teclado, clique) conta como atividade e renova a sessão em silêncio, com no máximo um `GET /auth/me` a cada 5 min, para que digitar um registro longo não derrube a sessão. Sem interação, 2 min antes de expirar aparece um aviso com "Continuar conectado" e "Sair". Perto do limite de 12 h, o aviso não oferece renovação e orienta a salvar o rascunho. Não há *polling* em segundo plano que mantenha a sessão viva sem o usuário.
 
 ### Formato de erros
 

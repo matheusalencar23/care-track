@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/ApiError";
 import RequestId from "@/app/ui/request-id";
 import AppHeader from "./components/app-header";
+import SessionTimeout from "./components/session-timeout";
 
 export default function AuthenticatedLayout({
   children,
@@ -52,6 +53,7 @@ export default function AuthenticatedLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader user={user} />
+      <SessionTimeout />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 text-white sm:px-6 sm:py-8">
         {children}

@@ -1,3 +1,4 @@
+import { clearSession, recordSessionExpiry } from "@/lib/session";
 import { ApiError } from "@/shared/ApiError";
 import axios from "axios";
 
@@ -22,9 +23,25 @@ export const api = axios.create({
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const expiresAt = response.headers["x-session-expires-at"];
+    const date = response.headers["date"];
+
+    if (typeof expiresAt === "string") {
+      recordSessionExpiry(
+        expiresAt,
+        typeof date === "string" ? date : undefined,
+      );
+    }
+
+    return response;
+  },
   (error: unknown) => {
     if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      if (error.response?.status === 401) {
+        clearSession();
+      }
+
       if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
         if (
           typeof window !== "undefined" &&
