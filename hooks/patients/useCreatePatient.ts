@@ -18,10 +18,11 @@ export function useCreatePatient({ onValidationError }: Options = {}) {
 
   const mutation = useMutation({
     mutationFn: createPatient,
-    onSuccess: () => {
+    onSuccess: (patient) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.patients.all });
+      queryClient.setQueryData(queryKeys.patients.detail(patient.id), patient);
       toast.success("Paciente cadastrado.");
-      router.push("/pacientes");
+      router.push(`/pacientes/${patient.id}`);
     },
     onError: (err) => {
       if (hasErrorCode(err, "VALIDATION_FAILED") && onValidationError?.(err)) {

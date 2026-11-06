@@ -90,7 +90,7 @@ describe("NewPatientForm", () => {
     expect(await screen.findByText("Data de nascimento inválida")).toBeVisible();
   });
 
-  it("envia só os campos preenchidos, sem máscara, e volta para a lista", async () => {
+  it("envia só os campos preenchidos, sem máscara, e abre o paciente", async () => {
     const { queryClient } = renderWithQueryClient(<NewPatientForm />);
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     await fillRequired();
@@ -98,7 +98,7 @@ describe("NewPatientForm", () => {
 
     await submit();
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/pacientes"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(`/pacientes/${created.id}`));
     expect(vi.mocked(createPatient).mock.calls[0][0]).toEqual({
       name: "Maria das Dores",
       birthDate: "1950-03-15",

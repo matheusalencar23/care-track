@@ -32,3 +32,12 @@ export function todayIso(today = new Date()) {
   const day = String(today.getDate()).padStart(2, "0");
   return `${today.getFullYear()}-${month}-${day}`;
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+export function formatDateTime(isoDateTime: string) {
+  return dateTimeFormat.format(new Date(isoDateTime));
+}

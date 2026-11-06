@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatWithMask, isValidCpf, maskCpf, normalizeSearch, onlyDigits } from "./masks";
+import { formatWithMask, isValidCpf, maskCns, maskCpf, normalizeSearch, onlyDigits } from "./masks";
 
 describe("onlyDigits", () => {
   it("remove tudo que não é dígito", () => {
@@ -45,6 +45,13 @@ describe("maskCpf", () => {
 
   it("esconde tudo quando o valor não tem 11 dígitos", () => {
     expect(maskCpf("123")).toBe("***.***.***-**");
+  });
+});
+
+describe("maskCns", () => {
+  it("mostra só os 4 últimos dígitos", () => {
+    expect(maskCns("898001160660004")).toBe("*** **** **** 0004");
+    expect(maskCns("123")).toBe("*** **** **** ****");
   });
 });
 

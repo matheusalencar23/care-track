@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageOn, formatAge, formatDate, todayIso } from "./dates";
+import { ageOn, formatAge, formatDate, formatDateTime, todayIso } from "./dates";
 
 const today = new Date(2026, 10, 6);
 
@@ -29,5 +29,13 @@ describe("formatAge", () => {
 describe("todayIso", () => {
   it("usa a data local, não a de UTC", () => {
     expect(todayIso(new Date(2026, 0, 5, 23, 30))).toBe("2026-01-05");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("mostra data e hora no fuso local", () => {
+    const local = new Date(2026, 10, 6, 14, 5);
+
+    expect(formatDateTime(local.toISOString())).toBe("06/11/2026, 14:05");
   });
 });

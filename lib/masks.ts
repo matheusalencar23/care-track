@@ -51,6 +51,16 @@ export function maskCpf(value: string) {
   return `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**`;
 }
 
+export function maskCns(value: string) {
+  const cns = onlyDigits(value);
+
+  if (cns.length !== 15) {
+    return "*** **** **** ****";
+  }
+
+  return `*** **** **** ${cns.slice(11)}`;
+}
+
 export function normalizeSearch(value: string) {
   const term = value.trim().replace(/\s+/g, " ");
 

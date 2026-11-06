@@ -8,5 +8,6 @@ export const queryKeys = {
     all: ["patients"] as const,
     list: (params: PatientListParams) =>
       ["patients", "list", params] as const,
+    detail: (id: string) => ["patients", "detail", id] as const,
   },
 };

@@ -138,6 +138,12 @@ export class FakeApi {
       return this.createPatient(route, request.postDataJSON());
     }
 
+    const patientMatch = /^GET \/patients\/([^/]+)$/.exec(call);
+
+    if (patientMatch) {
+      return this.getPatient(route, decodeURIComponent(patientMatch[1]));
+    }
+
     if (call === "POST /auth/signin") {
       const body = request.postDataJSON() as { email: string; password: string };
 
@@ -168,6 +174,27 @@ export class FakeApi {
     }
 
     return route.fulfill({ status: 404, json: { code: "NOT_FOUND", message: "Rota não simulada" } });
+  }
+
+  private getPatient(route: Route, id: string) {
+    if (!/^[0-9a-f-]{36}$/.test(id)) {
+      return route.fulfill({
+        status: 422,
+        json: {
+          code: "VALIDATION_FAILED",
+          message: "Dados inválidos. Verifique os campos e tente novamente.",
+          errors: [{ location: "params", path: "id", message: "ID de paciente inválido" }],
+        },
+      });
+    }
+
+    const patient = this.patients.find((item) => item.id === id);
+
+    if (!patient) {
+      return route.fulfill({ status: 404, json: { code: "PATIENT_NOT_FOUND", message: "Paciente não encontrado!" } });
+    }
+
+    return route.fulfill({ json: patient, headers: this.sessionHeaders() });
   }
 
   private createPatient(route: Route, body: Partial<FakePatient>) {

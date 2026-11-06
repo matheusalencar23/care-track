@@ -27,6 +27,7 @@ test.describe("lista de pacientes", () => {
     await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
 
     await expect(page).toHaveURL("/pacientes/0b6f1c2a-1111-4000-8000-000000000001");
+    await expect(page.getByRole("heading", { level: 1, name: "José Antônio Pereira" })).toBeVisible();
   });
 
   test("busca sem acento e por CPF sem levar o termo para a URL", async ({ page, api }) => {

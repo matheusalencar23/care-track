@@ -16,9 +16,9 @@ test("cadastra um paciente a partir da lista", async ({ page, api, cspViolations
   await page.getByLabel("Telefone").pressSequentially("11987654321");
   await page.getByRole("button", { name: "Cadastrar paciente" }).click();
 
-  await expect(page).toHaveURL("/pacientes");
+  await expect(page).toHaveURL(/^http:\/\/localhost:3100\/pacientes\/[0-9a-f-]{36}$/);
   await expect(page.getByText("Paciente cadastrado.")).toBeVisible();
-  await expect(page.getByRole("table").getByRole("link", { name: "Helena Vieira" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Helena Vieira" })).toBeVisible();
   expect(api.createdPatients).toEqual([
     { name: "Helena Vieira", birthDate: "1975-04-10", cpf: "11144477735", phone: "11987654321" },
   ]);
