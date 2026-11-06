@@ -120,7 +120,7 @@ export default function SessionTimeout() {
               type="button"
               block={false}
               onClick={() => setMaxDurationNoticeSeen(true)}
-              autoFocus
+              data-autofocus
             >
               Entendi
             </Button>
@@ -161,7 +161,7 @@ export default function SessionTimeout() {
             block={false}
             onClick={() => void renew()}
             disabled={isLoggingOut}
-            autoFocus
+            data-autofocus
           >
             Continuar conectado
           </Button>

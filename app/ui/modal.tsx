@@ -32,6 +32,7 @@ export default function Modal({
 
     if (open && !dialog.open) {
       dialog.showModal();
+      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!open && dialog.open) {
       dialog.close();
     }

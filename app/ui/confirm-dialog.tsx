@@ -43,7 +43,7 @@ export default function ConfirmDialog({
             block={false}
             onClick={onClose}
             disabled={isPending}
-            autoFocus
+            data-autofocus
           >
             {cancelLabel}
           </Button>

@@ -79,7 +79,7 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
   - [x] Diálogos: `Modal` (com `<dialog>` nativo) e `ConfirmDialog`; `Button` com variantes.
 - [x] Logout automático por inatividade, no modelo de [sessão deslizante](#expiração-da-sessão).
 - [x] Cabeçalhos de segurança: CSP com nonce por requisição no `proxy.ts` (todas as páginas passam a ser renderizadas por requisição) e os demais cabeçalhos no `next.config.ts`.
-- [ ] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais.
+- [x] Testes: Vitest + Testing Library para componentes e hooks; Playwright para fluxos principais (login, logout, sessão expirada, aviso de inatividade e CSP), com a API simulada no navegador.
 - [x] Recuperação de senha (`/forgot-password` e `/reset-password`, com o token do link do e-mail) e confirmação de e-mail (`/verify-email`, com reenvio do link).
 - [x] Incluir **COREN + UF** no cadastro.
 - [ ] Perfil do enfermeiro: nome, e-mail, **COREN + UF**. A página `/perfil` já mostra os dados (só leitura, via `GET /auth/me`); a edição depende de rota nova na API.
@@ -218,7 +218,8 @@ Mudanças acordadas que dependem do `care-track-api`:
 - [x] `code` estável em todas as respostas de erro (4xx, 429 e 500).
 - [x] `errors` do 422 como `{ location, path, message }`.
 - [x] `trust proxy` configurável pela variável `TRUST_PROXY` da API (número de intermediários, padrão `1`, ou lista de IPs/sub-redes confiáveis). O valor de produção e a verificação do IP na auditoria ficam para o deploy (ver requisitos de deploy acima).
-- [ ] `Cache-Control: no-store` nas respostas da API. Hoje elas vão sem `Cache-Control` e com `ETag`, então o navegador pode gravá-las no cache em disco; com dados de pacientes, isso quebraria a regra de cache só em memória. **Bloqueia** a Fase 1.
+- [x] `Cache-Control: no-store` em todas as respostas da API e ETag desligado, para o navegador não gravar dados de pacientes no cache em disco.
+- [x] Corpo da requisição ilegível responde 4xx em vez de 500: JSON malformado vira 400 com `code: "INVALID_REQUEST_BODY"`, e corpo acima do limite (100 KB) vira 413 com `REQUEST_BODY_TOO_LARGE`.
 - [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, anexos (Fase 3), relatório de acessos e exportação (Fase 4).
 
 ---
