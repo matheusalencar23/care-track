@@ -48,10 +48,10 @@ async function captureError(request: Promise<unknown>) {
   throw new Error("A requisição deveria ter falhado");
 }
 
-let location: { pathname: string; href: string };
+let location: { pathname: string; replace: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
-  location = { pathname: "/pacientes", href: "http://localhost/pacientes" };
+  location = { pathname: "/pacientes", replace: vi.fn() };
   vi.stubGlobal("location", location);
   vi.stubGlobal("BroadcastChannel", undefined);
   clearSession();
@@ -149,7 +149,7 @@ describe("api", () => {
     await captureError(api.get("/patients"));
 
     expect(getSessionSnapshot()).toBeNull();
-    expect(location.href).toBe("/login?expired=true");
+    expect(location.replace).toHaveBeenCalledWith("/login?expired=true");
   });
 
   it("não redireciona quando a requisição pede skipAuthRedirect", async () => {
@@ -158,7 +158,7 @@ describe("api", () => {
     const error = await captureError(api.get("/auth/me", { skipAuthRedirect: true }));
 
     expect((error as ApiError).statusCode).toBe(401);
-    expect(location.href).toBe("http://localhost/pacientes");
+    expect(location.replace).not.toHaveBeenCalled();
   });
 
   it("não redireciona quem já está no login", async () => {
@@ -167,7 +167,7 @@ describe("api", () => {
 
     await captureError(api.post("/auth/signin", {}));
 
-    expect(location.href).toBe("http://localhost/pacientes");
+    expect(location.replace).not.toHaveBeenCalled();
   });
 });
 

@@ -16,8 +16,8 @@ export default function ExternalLayout({ title, children }: Props) {
         <div className="mb-6 flex flex-col items-center">
           <Image src={logo} alt="Logo" className="w-50 mb-2" loading="eager" />
 
-          <h1 className="text-4xl font-bold text-blue-900">
-            Care<span className="text-teal-600">Track</span>
+          <h1 className="text-4xl font-bold text-white">
+            Care<span className="text-teal-300">Track</span>
           </h1>
 
           <p className="mt-2 text-center text-sm text-slate-200">{title}</p>

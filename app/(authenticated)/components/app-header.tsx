@@ -5,7 +5,7 @@ import type { User } from "@/model/user";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   FaChevronDown,
   FaSignOutAlt,
@@ -25,6 +25,8 @@ export default function AppHeader({ user }: Props) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const { signout, isPending: isLoggingOut } = useLogout();
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,9 +36,15 @@ export default function AppHeader({ user }: Props) {
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setMenuIsOpen(false);
+      if (event.key !== "Escape") {
+        return;
       }
+
+      if (menuRef.current?.contains(document.activeElement)) {
+        menuButtonRef.current?.focus();
+      }
+
+      setMenuIsOpen(false);
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -72,8 +80,8 @@ export default function AppHeader({ user }: Props) {
             preload
           />
 
-          <span className="hidden truncate text-lg font-semibold text-blue-900 sm:inline sm:text-xl md:text-2xl">
-            Care<span className="text-teal-600">Track</span>
+          <span className="hidden truncate text-lg font-semibold text-white sm:inline sm:text-xl md:text-2xl">
+            Care<span className="text-teal-300">Track</span>
           </span>
           <span className="sr-only sm:hidden">CareTrack</span>
         </Link>
@@ -106,22 +114,27 @@ export default function AppHeader({ user }: Props) {
 
       <div ref={menuRef} className="relative shrink-0">
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={() => setMenuIsOpen((prev) => !prev)}
           className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 sm:gap-3 sm:px-3"
-          aria-haspopup="menu"
           aria-expanded={menuIsOpen}
-          aria-label="Menu do usuário"
+          aria-controls={menuIsOpen ? menuId : undefined}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+          <span className="sr-only">Menu do usuário: </span>
+          <div
+            aria-hidden
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold"
+          >
             {initials}
           </div>
 
-          <span className="hidden max-w-32 truncate sm:inline">
+          <span className="sr-only sm:not-sr-only sm:max-w-32 sm:truncate">
             {user.name}
           </span>
 
           <FaChevronDown
+            aria-hidden
             className={`hidden text-xs transition-transform duration-200 sm:block ${
               menuIsOpen ? "rotate-180" : ""
             }`}
@@ -131,7 +144,7 @@ export default function AppHeader({ user }: Props) {
         {menuIsOpen && (
           <div
             className="absolute right-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-1.5rem))] origin-top-right overflow-hidden rounded-xl border border-white/10 bg-white shadow-xl ring-1 ring-black/5"
-            role="menu"
+            id={menuId}
           >
             <div className="border-b border-gray-100 px-4 py-3">
               <p className="truncate text-sm font-semibold text-gray-900">
@@ -146,9 +159,8 @@ export default function AppHeader({ user }: Props) {
                 href="/perfil"
                 onClick={() => setMenuIsOpen(false)}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                role="menuitem"
               >
-                <FaUserCircle className="text-xs" />
+                <FaUserCircle aria-hidden className="text-xs" />
                 Meu perfil
               </Link>
 
@@ -157,9 +169,8 @@ export default function AppHeader({ user }: Props) {
                 onClick={() => signout()}
                 disabled={isLoggingOut}
                 className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                role="menuitem"
               >
-                <FaSignOutAlt className="text-xs" />
+                <FaSignOutAlt aria-hidden className="text-xs" />
                 {isLoggingOut ? "Saindo..." : "Sair"}
               </button>
             </div>

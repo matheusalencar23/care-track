@@ -55,17 +55,34 @@ test.describe("usuário logado", () => {
   test("abre o perfil pelo menu do usuário", async ({ page }) => {
     await page.goto("/pacientes");
     await page.getByRole("button", { name: "Menu do usuário" }).click();
-    await page.getByRole("menuitem", { name: "Meu perfil" }).click();
+    await page.getByRole("link", { name: "Meu perfil" }).click();
 
     await expect(page).toHaveURL("/perfil");
     await expect(page.getByText(nurse.email)).toBeVisible();
     await expect(page.getByText(`COREN-${nurse.corenState} ${nurse.coren}`)).toBeVisible();
   });
 
+  test("usa o menu do usuário pelo teclado", async ({ page }) => {
+    await page.goto("/pacientes");
+    const menuButton = page.getByRole("button", { name: "Menu do usuário" });
+    await menuButton.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Meu perfil" })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("link", { name: "Meu perfil" })).toHaveCount(0);
+    await expect(menuButton).toBeFocused();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("sai e perde o acesso à área logada", async ({ page, api }) => {
     await page.goto("/pacientes");
     await page.getByRole("button", { name: "Menu do usuário" }).click();
-    await page.getByRole("menuitem", { name: "Sair" }).click();
+    await page.getByRole("button", { name: "Sair" }).click();
 
     await expect(page).toHaveURL("/login");
     expect(api.count("POST /auth/signout")).toBe(1);

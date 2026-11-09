@@ -103,6 +103,12 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [x] **Arquivar/reativar** com `ConfirmDialog` explicando que o prontuário é mantido; filtro "arquivados" na listagem. Implementado em 09/11/2026: botões "Arquivar"/"Reativar" no detalhe (`patient-actions.tsx`), que continua aberto e passa a mostrar o estado novo; a confirmação diz que nada é apagado e cita o prazo legal. Em erro, a confirmação fica aberta para tentar de novo; o 409 de "já está no estado pedido" (`PATIENT_ALREADY_ARCHIVED`/`PATIENT_NOT_ARCHIVED`, ex.: alterado em outra aba) fecha a confirmação e recarrega o paciente.
 - [x] **Consentimento de uso de imagem**: registrar (forma escrita/verbal, quem consentiu, responsável legal se menor), listar e revogar. Implementado em 09/11/2026 como a seção "Autorização de uso de imagem" do detalhe do paciente (`consent-section.tsx`). A regra de menor segue a da API: vale a idade **na data da coleta**, com o mesmo corte (`isMinorAt`). Se a data da coleta não for alterada, ela é omitida e vale o horário do servidor, para um relógio errado no computador não gravar uma data errada. Paciente arquivado não recebe autorização nova, mas a ativa pode ser revogada. A revogação é definitiva e as revogadas continuam listadas. O comprovante do termo fica para a Fase 4. Quando o paciente completa 18 anos, a autorização dada pelo responsável legal aparece como "Renovação necessária" (`consentNeedsRenewal`, `lib/consents.ts`), com as opções de renovar ou revogar. Como a API recusa uma nova enquanto há uma ativa, renovar revoga a anterior e registra a nova, em duas requisições: se a segunda falhar, o paciente fica sem autorização ativa, o lado seguro, e o formulário continua aberto para tentar de novo.
 - [x] Camada de dados seguindo o padrão do projeto: `model/patient.ts`, `services/patient.service.ts`, `hooks/patients/*`, chaves em `lib/query-keys.ts`. Os consentimentos seguem a mesma divisão (`model/consent.ts`, `services/consent.service.ts`, `hooks/consents/*`).
+- [ ] **Renovação da autorização pela API** (implementado na API em 09/11/2026; ver [Consentimentos](#consentimentos) nos contratos):
+  - Usar o `needsRenewal` que vem em cada consentimento, no lugar do `consentNeedsRenewal` de `lib/consents.ts`, para o front não repetir a regra. O campo vem `true` só na autorização ativa dada pelo responsável legal enquanto o paciente era menor, depois que ele completa 18 anos. O `status` continua `active`. Atualizar o `model/consent.ts` e remover a regra local e os testes dela, se não forem mais usados.
+  - Renovar com **uma só requisição**: o `POST /patients/:id/consents` revoga a autorização com `needsRenewal` e grava a nova na mesma transação, com o motivo "Renovação: o paciente completou 18 anos.". O front deixa de chamar a revogação antes. Se a requisição falhar, a anterior continua como estava, e o formulário fica aberto para tentar de novo. Depois do sucesso, recarregar a lista, que passa a trazer a anterior como revogada.
+  - Uma autorização ativa **sem** `needsRenewal` continua respondendo 409 `CONSENT_ALREADY_ACTIVE`.
+- [ ] **Data da coleta anterior ao nascimento** (recusada pela API desde 09/11/2026): no formulário de autorização, validar no Zod que a data da coleta não é anterior à `birthDate` do paciente. Se a API ainda assim recusar, ela responde 422 `CONSENT_COLLECTED_BEFORE_BIRTH` com o erro no campo (`errors: [{ location: "body", path: "collectedAt", message }]`), que o `applyFieldErrors` já leva ao campo. A API compara com a meia-noite UTC do dia do nascimento, então a coleta no próprio dia é aceita.
+- [ ] **Data de nascimento posterior a uma autorização** (recusada pela API desde 09/11/2026): na edição do paciente, a API recusa uma `birthDate` posterior à data de coleta de qualquer autorização dele, **inclusive as revogadas**, com 422 `PATIENT_BIRTH_DATE_AFTER_CONSENT` no campo `birthDate`. A checagem só acontece quando a data muda. Mostrar o erro no campo pelo `applyFieldErrors`, com uma mensagem que deixe claro o motivo (há autorização coletada antes da nova data). Uma validação antecipada no cliente é opcional, porque o formulário de edição não carrega as autorizações.
 
 ### Fase 2 — Histórico do paciente (registros de texto)
 
@@ -129,22 +135,32 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 - [ ] Uploads longos: o arquivo atravessa o proxy do Next, com timeout padrão de 30 s (`experimental.proxyTimeout`), enquanto a API aceita até 30 min por requisição. Ajustar esse valor e os limites dos intermediários antes de liberar vídeos, e testar com um arquivo de 200 MiB. O `matcher` do `proxy.ts` não pode passar a incluir `/api`, porque o Next guarda em memória o corpo das requisições que passam por ele, até 10 MB (`proxyClientMaxBodySize`). Não há upload direto nem em partes.
 - [ ] Compressão de imagens no cliente: opcional, só se o tamanho dos envios for um problema no uso real. A **remoção de metadados EXIF** (GPS) é feita pela API antes de gravar, sem reencodar a imagem, então o front não precisa fazê-la. Metadados de vídeos e PDFs ainda são gravados como vieram (pendente na API).
 - [ ] Visualização: galeria de imagens, player de vídeo, pré-visualização de PDF e download para outros formatos, por `GET .../attachments/:attachmentId/download`, que devolve o anexo com `downloadUrl` e `downloadUrlExpiresAt`. A URL vale 5 min e cada pedido é auditado: buscá-la só quando o usuário abrir o anexo (sem pré-carregar a galeria), não guardá-la e pedir outra quando vencer.
-- [ ] Exigir a autorização de uso de imagem antes de enviar fotos e vídeos: o registro existe desde a Fase 1, e a seção do paciente mostra se ela está ativa, ausente ou com renovação necessária. O bloqueio real é da API e **ainda não existe** (ver [Pendências na API](#pendências-na-api)): o front avisa e impede o envio, mas a API aceita.
+- [ ] Exigir a autorização de uso de imagem antes de enviar **e de abrir** fotos e vídeos. O bloqueio está na API desde 09/11/2026:
+  - **Envio:** o `POST /patients/:id/attachments` responde 409 `ATTACHMENT_CONSENT_REQUIRED` quando o tipo **detectado pelo conteúdo** é imagem ou vídeo e não há autorização `image_capture` ativa. Autorização revogada, ausente ou com `needsRenewal` também conta como falta de autorização. PDFs não dependem dela. O front avisa e impede o envio antes, a partir da seção de autorização. Mesmo assim, deve tratar o 409, por exemplo quando a autorização é revogada em outra aba ou quando um arquivo com extensão de PDF é na verdade uma imagem. O tratamento é mostrar a mensagem no arquivo recusado e oferecer o caminho para registrar a autorização.
+  - **Visualização:** o `GET .../attachments/:attachmentId/download` de uma foto ou vídeo responde o mesmo 409 `ATTACHMENT_CONSENT_REQUIRED` sem autorização ativa, e não devolve a `downloadUrl`. Na galeria e no player, mostrar no lugar do arquivo que a visualização depende de uma autorização ativa, sem tratar como erro genérico. Os arquivos continuam guardados e voltam a abrir quando uma autorização nova é registrada. O nome, o tipo e o tamanho do anexo continuam vindo na linha do tempo. Uma URL obtida antes da revogação vale até expirar (5 min).
 - [ ] Anexos não são editados nem apagados: são anulados junto com o registro; para trocar um arquivo, anula-se o registro e anexa-se de novo.
 
 ### Fase 4 — Direitos do titular e auditoria
 
 - [ ] Exportar os dados de um paciente (cadastro + histórico + anexos) para atender pedidos de acesso e portabilidade.
 - [ ] Visualizar o histórico de auditoria do paciente: quem acessou ou alterou e quando.
-- [ ] Comprovação do consentimento de imagem (anexo do termo ou assinatura; forma em definição na API) e bloqueio de novos anexos de imagem quando revogado.
+- [ ] Comprovação do consentimento de imagem (anexo do termo ou assinatura; forma em definição na API). O bloqueio de envio e de visualização de fotos e vídeos sem autorização ativa já existe na API (ver Fase 3).
 - [ ] Tela de informações de privacidade com o contato do encarregado (DPO).
 
 ### Fase 5 — Qualidade e operação
 
-- [ ] CI com lint, typecheck, testes e build a cada push.
+- [x] CI com lint, typecheck, testes e build a cada push. Implementado em 09/11/2026 no mesmo modelo do `care-track-api` (`.github/workflows/ci.yml`): PRs para `master`/`develop` e push na `develop` rodam `npm run check` (lint, typecheck, Vitest e build) e o Playwright; nos PRs, o commitlint valida as mensagens. Commits em Conventional Commits (`docs/commits.md`), com hooks do husky, e Dependabot semanal para a `develop`.
+  - [ ] Criar a `develop` e renomear a `main` para `master` no GitHub, e proteger as duas exigindo os jobs do CI antes do merge (configuração do repositório).
+  - [ ] semantic-release e imagem Docker no GHCR, como na API, quando os domínios e a topologia de deploy forem definidos. O `API_URL` entra no build (os rewrites do Next ficam fixados no build), então a imagem depende do endereço da API.
 - [ ] Monitoramento de erros com remoção de dados pessoais.
 - [ ] Auditoria de acessibilidade (teclado, leitores de tela, contraste).
+  - [x] Verificação automática (09/11/2026): o axe roda no Playwright (`e2e/accessibility.spec.ts`, WCAG 2.2 A/AA) nas páginas públicas, na área logada, nos formulários com erros de validação e nos diálogos, e falha o CI. Corrigido o que ele e a revisão manual do código acharam: o logotipo "CareTrack" em `blue-900`/`teal-600` sobre o fundo `blue-900` tinha contraste de 1:1 a 2,8:1 e passou a branco/`teal-300` (landing, páginas de autenticação, documentos legais e cabeçalho); o botão do menu do usuário tinha um `aria-label` que escondia o nome visível (WCAG 2.5.3) e o menu usava `role="menu"` sem navegação pelas setas, e virou um *disclosure* (botão com `aria-expanded` e links na ordem do Tab), com o Esc devolvendo o foco ao botão.
+  - [ ] Teste manual com leitor de tela (NVDA no Windows e VoiceOver no iOS) nos fluxos principais: login, cadastro e busca de paciente, novo registro, autorização de imagem e arquivamento. O axe não pega a ordem e a clareza dos anúncios, nem os avisos do `SessionTimeout` e dos toasts.
+  - [ ] Zoom de 200% e largura de 320 px (WCAG 1.4.4 e 1.4.10) e `prefers-reduced-motion` nas animações.
 - [ ] Revisão de segurança (dependências, `npm audit`, CSP).
+  - [x] Dependências (09/11/2026): o `npm audit` apontava uma falha crítica no Next 16.2 (bypass do Middleware/Proxy, que afeta o `proxy.ts`), além de falhas altas no `sharp` e no `postcss` embutidos no Next, no `zod` e no `follow-redirects` (via axios). Next e `eslint-config-next` foram para 16.4.5 e o resto saiu com `npm audit fix`. Fica uma falha moderada no `minimatch` 10, usado pelo `typescript-eslint` só no lint, sem versão corrigida compatível; não é explorável aqui (só processa globs do próprio projeto) e sai quando o `typescript-eslint` atualizar. O Dependabot passa a abrir os PRs de atualização toda semana.
+  - [x] CSP e cabeçalhos revisados: a política continua adequada (nonce, `'strict-dynamic'`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`). O `X-Powered-By: Next.js` foi desligado. Sem `dangerouslySetInnerHTML`, `eval`, `console.*` ou variáveis `NEXT_PUBLIC_` no código. O redirecionamento do 401 no `lib/api.ts` passou de `location.href` para `location.replace`, como no `SessionTimeout`, para a página que expirou não ficar no histórico.
+  - [ ] Relatório de violações da CSP (`report-to`): depende do monitoramento de erros, que foi adiado.
 
 ### Futuro (a avaliar)
 
@@ -209,7 +225,7 @@ Implementado na API em 04/11/2026:
 - `isInvalidTokenError` passa a checar `INVALID_LINK_TOKEN`, e não só o status 422.
 - Na edição de registro, `RECORD_VERSION_OUTDATED` recarrega o registro sem perder o texto digitado, e `PATIENT_ARCHIVED` bloqueia a ação.
 
-**Erros por campo (422):** cada item do `errors` tem `location` (`body`, `query` ou `params`), `path` (o campo, separado por pontos, como `representativeName` ou `items.0.name`; vazio quando o erro é do objeto inteiro) e `message`. Os formulários continuam validando com Zod as mesmas regras da API. Quando a API ainda assim recusar, os itens com `location: "body"` vão para o campo correspondente com o `setError` do react-hook-form, e o que não corresponder a nenhum campo aparece no toast. Os 422 de regra de negócio (link inválido, conteúdo igual ao atual etc.) vêm com `errors: []` e são tratados pelo `code`.
+**Erros por campo (422):** cada item do `errors` tem `location` (`body`, `query` ou `params`), `path` (o campo, separado por pontos, como `representativeName` ou `items.0.name`; vazio quando o erro é do objeto inteiro) e `message`. Os formulários continuam validando com Zod as mesmas regras da API. Quando a API ainda assim recusar, os itens com `location: "body"` vão para o campo correspondente com o `setError` do react-hook-form, e o que não corresponder a nenhum campo aparece no toast. Os 422 de regra de negócio (link inválido, conteúdo igual ao atual etc.) vêm com `errors: []` e são tratados pelo `code`. A exceção são as regras de negócio ligadas a um campo do formulário, que trazem o erro no campo: `CONSENT_COLLECTED_BEFORE_BIRTH` (`path: "collectedAt"`) e `PATIENT_BIRTH_DATE_AFTER_CONSENT` (`path: "birthDate"`), desde 09/11/2026.
 
 ### Paginação
 
@@ -237,8 +253,8 @@ Mudanças acordadas que dependem do `care-track-api`:
 - [x] `Cache-Control: no-store` em todas as respostas da API e ETag desligado, para o navegador não gravar dados de pacientes no cache em disco.
 - [x] Corpo da requisição ilegível responde 4xx em vez de 500: JSON malformado vira 400 com `code: "INVALID_REQUEST_BODY"`, e corpo acima do limite (100 KB) vira 413 com `REQUEST_BODY_TOO_LARGE`.
 - [ ] Código próprio para CPF ou Cartão SUS já cadastrado (ex.: `PATIENT_CPF_ALREADY_EXISTS`, `PATIENT_CNS_ALREADY_EXISTS`), no lugar do `CONFLICT` genérico da chave única, para o formulário apontar o campo. Até lá, o front mostra a mensagem genérica no toast.
-- [ ] Recusar `collectedAt` anterior ao nascimento do paciente no registro do consentimento. Hoje a API aceita, e o front também (usa as mesmas validações).
-- [ ] **Exigir autorização ativa no upload de fotos e vídeos** (`POST /attachments` hoje não consulta o consentimento, e o `hasActiveConsent` não é usado por nenhuma rota). A autorização vencida pela maioridade continua `active` na API e também precisa ser recusada. Fazer antes do primeiro paciente real. Avaliar também a renovação em uma só operação, no lugar de revogar e registrar separadamente. Registrado no `docs/roadmap.md` da API em 09/11/2026, junto dos outros itens desta lista.
+- [x] Recusar `collectedAt` anterior ao nascimento do paciente no registro do consentimento (09/11/2026): 422 `CONSENT_COLLECTED_BEFORE_BIRTH` no campo `collectedAt`. A API passou a recusar também o caminho inverso: a edição do paciente não aceita uma `birthDate` posterior à coleta de uma autorização (422 `PATIENT_BIRTH_DATE_AFTER_CONSENT` no campo `birthDate`). Tarefas do front na Fase 1.
+- [x] **Exigir autorização ativa no upload de fotos e vídeos** (09/11/2026): 409 `ATTACHMENT_CONSENT_REQUIRED`, que vale também para o download de fotos e vídeos. A autorização vencida pela maioridade passa a vir com `needsRenewal: true` e não conta como ativa, e a renovação é feita numa só requisição. Tarefas do front nas Fases 1 e 3.
 - [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, relatório de acessos e exportação (Fase 4).
 
 ---
@@ -269,15 +285,17 @@ Resposta de paciente: `{ id, name, birthDate, cpf, cns, phone, archivedAt, creat
 | `GET` | `/patients?search=&status=&page=&limit=` | Listar/buscar → `{ items, page, limit, total, totalPages }` |
 | `POST` | `/patients` | Cadastrar `{ name, birthDate, cpf?, cns?, phone? }` → 201 |
 | `GET` | `/patients/:id` | Detalhe |
-| `PUT` | `/patients/:id` | Editar (corpo completo, como no cadastro). 409 se arquivado |
+| `PUT` | `/patients/:id` | Editar (corpo completo, como no cadastro). 409 se arquivado; 422 `PATIENT_BIRTH_DATE_AFTER_CONSENT` (campo `birthDate`) se a nova data de nascimento for posterior à coleta de alguma autorização |
 | `POST` | `/patients/:id/archive` · `/unarchive` | Arquivar/reativar. 409 se já estiver no estado pedido |
 
 ### Consentimentos
 
+Resposta de consentimento: `{ id, patientId, type, method, grantor, representativeName, collectedAt, status, needsRenewal, revokedAt, revocationReason, createdAt }`. O `needsRenewal` (desde 09/11/2026) é `true` na autorização ativa dada pelo responsável legal enquanto o paciente era menor, depois que ele completa 18 anos. Nesse caso, ela não vale mais, embora o `status` continue `active`.
+
 | Método | Rota | Uso |
 |---|---|---|
 | `GET` | `/patients/:id/consents` | Listar |
-| `POST` | `/patients/:id/consents` | Registrar `{ type: "image_capture", method: "written"\|"verbal", grantor: "patient"\|"legal_representative", representativeName?, collectedAt? }`. Paciente menor exige responsável legal; 409 se já houver um ativo do mesmo tipo |
+| `POST` | `/patients/:id/consents` | Registrar `{ type: "image_capture", method: "written"\|"verbal", grantor: "patient"\|"legal_representative", representativeName?, collectedAt? }`. Paciente menor exige responsável legal. Se a ativa do mesmo tipo tiver `needsRenewal`, ela é revogada e substituída na mesma transação; se não tiver, responde 409. Responde 422 `CONSENT_COLLECTED_BEFORE_BIRTH` (campo `collectedAt`) se a coleta for anterior ao nascimento |
 | `POST` | `/patients/:id/consents/:consentId/revoke` | Revogar `{ reason? }` |
 
 ### Registros do histórico
@@ -298,8 +316,8 @@ Resposta de anexo: `{ id, patientId, recordId, fileName, contentType, size, sha2
 
 | Método | Rota | Uso |
 |---|---|---|
-| `POST` | `/patients/:id/attachments` | Enviar um arquivo (multipart, campo `file`). O anexo nasce sem registro (`recordId` nulo) |
-| `GET` | `/patients/:id/attachments/:attachmentId/download` | Obter o anexo com `downloadUrl` e `downloadUrlExpiresAt`; a URL vale 5 min |
+| `POST` | `/patients/:id/attachments` | Enviar um arquivo (multipart, campo `file`). O anexo nasce sem registro (`recordId` nulo). Foto ou vídeo sem autorização de imagem ativa: 409 `ATTACHMENT_CONSENT_REQUIRED` |
+| `GET` | `/patients/:id/attachments/:attachmentId/download` | Obter o anexo com `downloadUrl` e `downloadUrlExpiresAt`; a URL vale 5 min. Foto ou vídeo sem autorização de imagem ativa: 409 `ATTACHMENT_CONSENT_REQUIRED`, sem URL |
 
 ### Ainda não existem
 
@@ -320,7 +338,7 @@ Já respondidas pela API (detalhes no `docs/roadmap.md` dela):
 - **Anexos:** armazenamento compatível com S3, bucket privado. Na fase de testes, Oracle Cloud em São Paulo; o provedor será revisto antes do primeiro paciente real. Todo arquivo passa pela API, e o download é por URL assinada de curta duração.
 - **Menores de idade:** sim. O consentimento de imagem de menor exige o responsável legal.
 - **Exclusão definitiva:** não existe no app. Só como procedimento administrativo do operador (ordem judicial ou da ANPD), registrado na auditoria.
-- **Autorização de imagem e maioridade** (decidido em 09/11/2026, pelo responsável do produto): a autorização dada pelo responsável legal enquanto o paciente era menor deixa de valer quando ele completa 18 anos e precisa ser renovada. A autorização dada por responsável legal de quem já era adulto na coleta não é afetada. O front já reflete a regra; falta a API (ver [Pendências na API](#pendências-na-api)). Incluir na revisão jurídica.
+- **Autorização de imagem e maioridade** (decidido em 09/11/2026, pelo responsável do produto): a autorização dada pelo responsável legal enquanto o paciente era menor deixa de valer quando ele completa 18 anos e precisa ser renovada. A autorização dada por responsável legal de quem já era adulto na coleta não é afetada. A API implementou a regra em 09/11/2026 (`needsRenewal` e renovação numa só requisição), e o front precisa passar a usá-la (ver Fase 1). Incluir na revisão jurídica.
 - **Menor emancipado** (decidido em 09/11/2026, pelo responsável do produto): continua sendo registrado com o responsável legal, como qualquer menor de 18 anos. A API e o front já funcionam assim.
 
 Ainda em aberto:
