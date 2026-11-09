@@ -12,8 +12,8 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-8 flex-col md:flex-row mb-6">
               <Image src={logo} alt="Logo" className="w-75" loading="eager" />
-              <h1 className="text-8xl font-bold text-blue-600">
-                Care<span className="text-teal-600">Track</span>
+              <h1 className="text-8xl font-bold text-white">
+                Care<span className="text-teal-300">Track</span>
               </h1>
             </div>
             <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">

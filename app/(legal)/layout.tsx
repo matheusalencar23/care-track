@@ -11,8 +11,8 @@ export default function LegalLayout({
       <header className="border-b border-white/10 bg-white/10 px-4 py-2 backdrop-blur-2xl sm:px-6">
         <Link href="/" className="inline-flex items-center gap-1.5">
           <Image src={logo} alt="" className="w-10 sm:w-12" preload />
-          <span className="text-xl font-semibold text-blue-900">
-            Care<span className="text-teal-600">Track</span>
+          <span className="text-xl font-semibold text-white">
+            Care<span className="text-teal-300">Track</span>
           </span>
         </Link>
       </header>

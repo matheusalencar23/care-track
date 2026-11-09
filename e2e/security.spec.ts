@@ -21,6 +21,7 @@ for (const path of publicPages) {
     expect(nonce).toBeTruthy();
     expect(csp).toContain("frame-ancestors 'none'");
     expect(response?.headers()["x-frame-options"]).toBe("DENY");
+    expect(response?.headers()["x-powered-by"]).toBeUndefined();
     expect(cspViolations).toEqual([]);
   });
 }

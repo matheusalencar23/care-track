@@ -12,6 +12,7 @@ import BackLink from "../../components/back-link";
 import PatientLoadError from "../../components/patient-load-error";
 import ConsentSection from "./consent-section";
 import PatientActions from "./patient-actions";
+import RecordsSection from "./records-section";
 
 interface Props {
   id: string;
@@ -157,15 +158,7 @@ export default function PatientDetail({ id }: Props) {
 
       <ConsentSection patient={patient} />
 
-      <section aria-labelledby="patient-history-title" className={cardClassName}>
-        <h2 id="patient-history-title" className="text-lg font-semibold">
-          Histórico
-        </h2>
-        <p className="mt-2 text-sm text-slate-300">
-          Os registros de acompanhamento deste paciente ainda estão em
-          construção.
-        </p>
-      </section>
+      <RecordsSection key={patient.id} patient={patient} />
     </div>
   );
 }

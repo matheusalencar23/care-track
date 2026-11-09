@@ -62,7 +62,7 @@ api.interceptors.response.use(
           typeof window !== "undefined" &&
           window.location.pathname !== "/login"
         ) {
-          window.location.href = "/login?expired=true";
+          window.location.replace("/login?expired=true");
         }
       }
 
