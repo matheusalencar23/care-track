@@ -18,7 +18,7 @@ export default function Checkbox({ label, error, id, className = "", ...props }:
           type="checkbox"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`mt-0.5 size-5 shrink-0 cursor-pointer accent-teal-500 ${className}`}
+          className={`mt-0.5 size-5 shrink-0 cursor-pointer accent-blue-800 ${className}`}
           {...props}
         />
 

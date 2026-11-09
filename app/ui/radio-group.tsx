@@ -55,7 +55,7 @@ export default function RadioGroup({
         {options.map((option) => (
           <label
             key={option.value}
-            className={`flex flex-1 items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white transition focus-within:border-white focus-within:ring-2 focus-within:ring-white/30 sm:min-w-44 ${
+            className={`flex flex-1 items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white transition has-checked:border-blue-400 has-checked:bg-blue-800 has-checked:font-semibold focus-within:border-white focus-within:ring-2 focus-within:ring-white/30 sm:min-w-44 ${
               option.disabled
                 ? "cursor-not-allowed opacity-50"
                 : "cursor-pointer hover:bg-white/15"
@@ -75,7 +75,7 @@ export default function RadioGroup({
                   ? true
                   : undefined
               }
-              className="h-4 w-4 shrink-0 accent-white"
+              className="h-4 w-4 shrink-0 scheme-dark accent-blue-800"
             />
             {option.label}
           </label>
