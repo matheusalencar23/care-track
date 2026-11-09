@@ -44,6 +44,20 @@ export const defaultPatients: FakePatient[] = [
   }),
 ];
 
+export interface FakeConsent {
+  id: string;
+  patientId: string;
+  type: string;
+  method: string;
+  grantor: string;
+  representativeName: string | null;
+  collectedAt: string;
+  status: "active" | "revoked";
+  revokedAt: string | null;
+  revocationReason: string | null;
+  createdAt: string;
+}
+
 const SESSION_IDLE_MS = 30 * 60 * 1000;
 
 function withoutAccents(value: string) {
@@ -55,6 +69,7 @@ interface ApiOptions {
   meStatus?: number;
   patients?: FakePatient[];
   patientsStatus?: number;
+  consents?: FakeConsent[];
 }
 
 export class FakeApi {
@@ -66,6 +81,9 @@ export class FakeApi {
   readonly patientQueries: URLSearchParams[] = [];
   readonly createdPatients: unknown[] = [];
   readonly updatedPatients: unknown[] = [];
+  readonly grantedConsents: unknown[] = [];
+  readonly revocations: unknown[] = [];
+  consents: FakeConsent[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -77,6 +95,7 @@ export class FakeApi {
     this.meStatus = options.meStatus;
     this.patients = options.patients ?? defaultPatients;
     this.patientsStatus = options.patientsStatus;
+    this.consents = options.consents ?? [];
   }
 
   async install() {
@@ -145,6 +164,25 @@ export class FakeApi {
       return this.getPatient(route, decodeURIComponent(patientMatch[1]));
     }
 
+    const consentsMatch = /^(GET|POST) \/patients\/([^/]+)\/consents$/.exec(call);
+
+    if (consentsMatch) {
+      const patientId = decodeURIComponent(consentsMatch[2]);
+
+      return consentsMatch[1] === "GET"
+        ? route.fulfill({
+            json: this.consents.filter((consent) => consent.patientId === patientId),
+            headers: this.sessionHeaders(),
+          })
+        : this.grantConsent(route, patientId, request.postDataJSON());
+    }
+
+    const revokeMatch = /^POST \/patients\/([^/]+)\/consents\/([^/]+)\/revoke$/.exec(call);
+
+    if (revokeMatch) {
+      return this.revokeConsent(route, decodeURIComponent(revokeMatch[2]), request.postDataJSON());
+    }
+
     const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
 
     if (archiveMatch) {
@@ -208,6 +246,62 @@ export class FakeApi {
     }
 
     return route.fulfill({ json: patient, headers: this.sessionHeaders() });
+  }
+
+  private grantConsent(route: Route, patientId: string, body: Partial<FakeConsent>) {
+    this.grantedConsents.push(body);
+    const patient = this.patients.find((item) => item.id === patientId);
+
+    if (patient?.archivedAt) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado. Reative-o para alterar os dados." },
+      });
+    }
+
+    if (this.consents.some((consent) => consent.patientId === patientId && consent.status === "active")) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "CONSENT_ALREADY_ACTIVE", message: "Já existe um consentimento ativo deste tipo para o paciente." },
+      });
+    }
+
+    const now = new Date().toISOString();
+    const consent: FakeConsent = {
+      id: `0b6f1c2a-4444-4000-8000-${String(this.consents.length).padStart(12, "0")}`,
+      patientId,
+      type: body.type ?? "image_capture",
+      method: body.method ?? "written",
+      grantor: body.grantor ?? "patient",
+      representativeName: body.representativeName ?? null,
+      collectedAt: body.collectedAt ?? now,
+      status: "active",
+      revokedAt: null,
+      revocationReason: null,
+      createdAt: now,
+    };
+    this.consents = [consent, ...this.consents];
+
+    return route.fulfill({ status: 201, json: consent, headers: this.sessionHeaders() });
+  }
+
+  private revokeConsent(route: Route, consentId: string, body: { reason?: string }) {
+    this.revocations.push(body);
+    const current = this.consents.find((consent) => consent.id === consentId);
+
+    if (!current) {
+      return route.fulfill({ status: 404, json: { code: "CONSENT_NOT_FOUND", message: "Consentimento não encontrado!" } });
+    }
+
+    const revoked: FakeConsent = {
+      ...current,
+      status: "revoked",
+      revokedAt: new Date().toISOString(),
+      revocationReason: body.reason ?? null,
+    };
+    this.consents = this.consents.map((consent) => (consent.id === consentId ? revoked : consent));
+
+    return route.fulfill({ json: revoked, headers: this.sessionHeaders() });
   }
 
   private setArchived(route: Route, id: string, archive: boolean) {

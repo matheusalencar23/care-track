@@ -10,6 +10,7 @@ import type { Patient } from "@/model/patient";
 import type { ReactNode } from "react";
 import BackLink from "../../components/back-link";
 import PatientLoadError from "../../components/patient-load-error";
+import ConsentSection from "./consent-section";
 import PatientActions from "./patient-actions";
 
 interface Props {
@@ -153,6 +154,8 @@ export default function PatientDetail({ id }: Props) {
       </div>
 
       <PatientInfo patient={patient} />
+
+      <ConsentSection patient={patient} />
 
       <section aria-labelledby="patient-history-title" className={cardClassName}>
         <h2 id="patient-history-title" className="text-lg font-semibold">

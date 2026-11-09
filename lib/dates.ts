@@ -41,3 +41,19 @@ const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", {
 export function formatDateTime(isoDateTime: string) {
   return dateTimeFormat.format(new Date(isoDateTime));
 }
+
+const AGE_OF_MAJORITY = 18;
+
+export function isMinorAt(birthDate: string, date: Date) {
+  const { year, month, day } = dateParts(birthDate);
+  const adulthood = Date.UTC(year + AGE_OF_MAJORITY, month - 1, day);
+
+  return date.getTime() < adulthood;
+}
+
+export function toLocalDateTimeInput(date = new Date()) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${todayIso(date)}T${hours}:${minutes}`;
+}

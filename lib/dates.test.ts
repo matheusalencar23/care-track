@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ageOn, formatAge, formatDate, formatDateTime, todayIso } from "./dates";
+import {
+  ageOn,
+  formatAge,
+  formatDate,
+  formatDateTime,
+  isMinorAt,
+  todayIso,
+  toLocalDateTimeInput,
+} from "./dates";
 
 const today = new Date(2026, 10, 6);
 
@@ -37,5 +45,18 @@ describe("formatDateTime", () => {
     const local = new Date(2026, 10, 6, 14, 5);
 
     expect(formatDateTime(local.toISOString())).toBe("06/11/2026, 14:05");
+  });
+});
+
+describe("isMinorAt", () => {
+  it("usa o mesmo corte da API: meia-noite UTC do aniversário de 18 anos", () => {
+    expect(isMinorAt("2008-11-09", new Date("2026-11-08T23:59:59.000Z"))).toBe(true);
+    expect(isMinorAt("2008-11-09", new Date("2026-11-09T00:00:00.000Z"))).toBe(false);
+  });
+});
+
+describe("toLocalDateTimeInput", () => {
+  it("devolve o formato do campo datetime-local, na hora local", () => {
+    expect(toLocalDateTimeInput(new Date(2026, 0, 5, 7, 3))).toBe("2026-01-05T07:03");
   });
 });
