@@ -19,6 +19,16 @@ updates:
         update-types:
           - version-update:semver-major
     groups:
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+      next:
+        patterns:
+          - next
+          - eslint-config-next
       dev-dependencies:
         dependency-type: development
         update-types:
