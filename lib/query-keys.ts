@@ -11,5 +11,6 @@ export const queryKeys = {
       ["patients", "list", params] as const,
     detail: (id: string) => ["patients", "detail", id] as const,
     consents: (id: string) => ["patients", "consents", id] as const,
+    records: (id: string) => ["patients", "records", id] as const,
   },
 };

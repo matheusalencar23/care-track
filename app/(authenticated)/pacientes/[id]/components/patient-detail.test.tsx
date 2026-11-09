@@ -15,6 +15,10 @@ vi.mock("@/services/consent.service", () => ({
   listConsents: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/services/record.service", () => ({
+  listRecords: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+}));
+
 const id = "8f0c6d1e-0000-4000-8000-000000000001";
 
 function patient(overrides: Partial<Patient> = {}): Patient {

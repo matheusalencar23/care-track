@@ -58,6 +58,37 @@ export interface FakeConsent {
   createdAt: string;
 }
 
+export interface FakeRecord {
+  id: string;
+  patientId: string;
+  content: string | null;
+  version: number;
+  author: { id: string; name: string; coren: string; corenState: string };
+  createdAt: string;
+  editedAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  voidReasonDetails: string | null;
+  attachments: unknown[];
+}
+
+const fakeAuthor = { id: "0b6f1c2a-7777-4000-8000-000000000001", name: nurse.name, coren: nurse.coren, corenState: nurse.corenState };
+
+export function fakeRecord(overrides: Partial<FakeRecord> & Pick<FakeRecord, "id" | "patientId">): FakeRecord {
+  return {
+    content: "Registro de teste",
+    version: 1,
+    author: fakeAuthor,
+    createdAt: "2026-11-01T12:00:00.000Z",
+    editedAt: null,
+    voidedAt: null,
+    voidReason: null,
+    voidReasonDetails: null,
+    attachments: [],
+    ...overrides,
+  };
+}
+
 const SESSION_IDLE_MS = 30 * 60 * 1000;
 
 function withoutAccents(value: string) {
@@ -70,6 +101,7 @@ interface ApiOptions {
   patients?: FakePatient[];
   patientsStatus?: number;
   consents?: FakeConsent[];
+  records?: FakeRecord[];
 }
 
 export class FakeApi {
@@ -84,6 +116,8 @@ export class FakeApi {
   readonly grantedConsents: unknown[] = [];
   readonly revocations: unknown[] = [];
   consents: FakeConsent[] = [];
+  records: FakeRecord[] = [];
+  readonly createdRecords: unknown[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -96,6 +130,7 @@ export class FakeApi {
     this.patients = options.patients ?? defaultPatients;
     this.patientsStatus = options.patientsStatus;
     this.consents = options.consents ?? [];
+    this.records = options.records ?? [];
   }
 
   async install() {
@@ -183,6 +218,16 @@ export class FakeApi {
       return this.revokeConsent(route, decodeURIComponent(revokeMatch[2]), request.postDataJSON());
     }
 
+    const recordsMatch = /^(GET|POST) \/patients\/([^/]+)\/records$/.exec(call);
+
+    if (recordsMatch) {
+      const patientId = decodeURIComponent(recordsMatch[2]);
+
+      return recordsMatch[1] === "GET"
+        ? this.listRecords(route, patientId, new URL(request.url()).searchParams)
+        : this.createRecord(route, patientId, request.postDataJSON());
+    }
+
     const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
 
     if (archiveMatch) {
@@ -246,6 +291,42 @@ export class FakeApi {
     }
 
     return route.fulfill({ json: patient, headers: this.sessionHeaders() });
+  }
+
+  private listRecords(route: Route, patientId: string, query: URLSearchParams) {
+    const limit = Number(query.get("limit") ?? 20);
+    const cursor = query.get("cursor");
+    const matches = this.records.filter((record) => record.patientId === patientId);
+    const start = cursor ? matches.findIndex((record) => record.id === cursor) + 1 : 0;
+    const items = matches.slice(start, start + limit);
+    const hasMore = start + limit < matches.length;
+
+    return route.fulfill({
+      json: { items, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
+      headers: this.sessionHeaders(),
+    });
+  }
+
+  private createRecord(route: Route, patientId: string, body: { content?: string }) {
+    this.createdRecords.push(body);
+    const patient = this.patients.find((item) => item.id === patientId);
+
+    if (patient?.archivedAt) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado. Reative-o para alterar os dados." },
+      });
+    }
+
+    const record = fakeRecord({
+      id: `0b6f1c2a-6666-4000-8000-${String(this.records.length).padStart(12, "0")}`,
+      patientId,
+      content: body.content ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    this.records = [record, ...this.records];
+
+    return route.fulfill({ status: 201, json: record, headers: this.sessionHeaders() });
   }
 
   private grantConsent(route: Route, patientId: string, body: Partial<FakeConsent>) {

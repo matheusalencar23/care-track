@@ -56,7 +56,7 @@ Regras para qualquer código novo:
 - **Logout automático por inatividade**, com aviso antes de expirar.
 - **Sem rastreadores ou analytics de terceiros.** Monitoramento de erros (ex.: Sentry) só com remoção de dados pessoais antes do envio.
 - **Anexos nunca públicos**: acessados por URLs autenticadas ou assinadas de curta duração, sem cache no navegador.
-- **Cabeçalhos de segurança** (implementados em 06/11/2026): `Content-Security-Policy` com nonce por requisição e `'strict-dynamic'` para scripts, `connect-src 'self'` e `frame-ancestors 'none'`, gerada no `proxy.ts`; `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Permissions-Policy` (sem câmera, microfone e localização; rever se a Fase 3 usar a câmera pelo navegador), `Cross-Origin-Opener-Policy` e HSTS no `next.config.ts`. Estilos ficam com `'unsafe-inline'`. A Fase 3 precisa liberar na CSP o domínio do storage dos anexos (`img-src`, `media-src` e, para o upload direto, `connect-src`).
+- **Cabeçalhos de segurança** (implementados em 06/11/2026): `Content-Security-Policy` com nonce por requisição e `'strict-dynamic'` para scripts, `connect-src 'self'` e `frame-ancestors 'none'`, gerada no `proxy.ts`; `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Permissions-Policy` (sem câmera, microfone e localização; rever se a Fase 3 usar a câmera pelo navegador), `Cross-Origin-Opener-Policy` e HSTS no `next.config.ts`. Estilos ficam com `'unsafe-inline'`. A Fase 3 precisa liberar na CSP o domínio do storage dos anexos para a visualização por URL assinada (`img-src`, `media-src` e, para a pré-visualização de PDF, `frame-src`). O upload passa pela API, então o `connect-src` continua `'self'`.
 - **Dados mascarados por padrão** em listas (ex.: CPF `***.456.789-**`).
 - A autorização real (cada enfermeiro só acessa seus pacientes) é **sempre** da API; o frontend apenas reflete.
 
@@ -106,9 +106,9 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 
 ### Fase 2 — Histórico do paciente (registros de texto)
 
-- [ ] Linha do tempo no detalhe do paciente, do mais recente para o mais antigo, com rolagem infinita (`useInfiniteQuery` sobre o cursor).
-- [ ] Novo registro: só o texto (até 20 mil caracteres). Sem tipo (decisão da API: reavaliar com o uso) e sem data/hora informada; o horário é o do servidor.
-- [ ] Autoria automática: nome + COREN do enfermeiro e data/hora de criação fornecidos pela API, nunca editáveis no frontend.
+- [x] Linha do tempo no detalhe do paciente, do mais recente para o mais antigo, com rolagem infinita (`useInfiniteQuery` sobre o cursor). Implementada em 09/11/2026 na seção "Histórico" (`records-section.tsx`): a página seguinte carrega ao chegar perto do fim da lista, e o botão "Carregar registros anteriores" continua disponível. O texto aparece puro, com as quebras de linha. Registro com anexos mostra só a quantidade até a Fase 3.
+- [x] Novo registro: só o texto (até 20 mil caracteres). Sem tipo (decisão da API: reavaliar com o uso) e sem data/hora informada; o horário é o do servidor. Implementado em 09/11/2026 (`new-record-form.tsx`): texto acima do limite é recusado sem ser cortado, e o texto fica no campo quando o envio falha. Se o paciente for arquivado durante a escrita, o texto continua visível, somente leitura, até o paciente ser reativado ou o usuário sair da página.
+- [x] Autoria automática: nome + COREN do enfermeiro e data/hora de criação fornecidos pela API, nunca editáveis no frontend.
 - [ ] **Edição com versões**: envia a `version` que está sendo editada e motivo opcional; em 409 de versão desatualizada, recarregar o registro sem perder o texto digitado. Marcar "editado" e listar as versões anteriores.
 - [ ] **Anulação** com `ConfirmDialog`: motivo da lista + descrição obrigatória em "outro"; deixar claro que é definitiva. Aba ou filtro "anulados".
 - [ ] Rascunho do registro só em memória (sem `localStorage`), com aviso ao sair da página com texto não salvo.
@@ -116,12 +116,12 @@ Base para as funcionalidades de pacientes. Parte pode correr em paralelo com a d
 
 ### Fase 3 — Anexos (imagens, vídeos e arquivos)
 
-- [ ] Upload em registros do histórico: seleção múltipla e arrastar-e-soltar, barra de progresso, cancelar e tentar de novo.
-- [ ] Lista de tipos permitidos e limite de tamanho alinhados com a API; validação no cliente antes do envio.
-- [ ] Upload de vídeos grandes: avaliar upload direto para o storage via URL assinada e upload em partes.
-- [ ] Compressão de imagens no cliente e **remoção de metadados EXIF** (GPS) antes do envio, com validação também na API.
-- [ ] Visualização: galeria de imagens, player de vídeo, pré-visualização de PDF e download para outros formatos.
-- [ ] Registro de autorização de uso de imagem do paciente antes de permitir fotos e vídeos.
+- [ ] Upload em registros do histórico: seleção múltipla e arrastar-e-soltar, barra de progresso, cancelar e tentar de novo. Fluxo decidido na API em 09/11/2026: cada arquivo vai para `POST /patients/:id/attachments` (multipart, campo `file`), que devolve o anexo ainda sem registro; o `POST` do registro recebe os `attachmentIds` e faz a ligação na mesma transação. O registro pode ter só arquivos, sem texto. Anexo enviado e não usado fica sem registro, e a limpeza é um job do operador.
+- [ ] Validação no cliente antes do envio, alinhada com a API: JPEG, PNG, WebP, PDF, MP4, MOV e WebM (HEIC fica de fora por enquanto), até 200 MiB por arquivo (`ATTACHMENT_MAX_SIZE_BYTES`). A API detecta o tipo pelo conteúdo e ignora o declarado; tratar `ATTACHMENT_TYPE_NOT_ALLOWED`, `ATTACHMENT_CONTENT_INVALID` e `ATTACHMENT_TOO_LARGE` pelo `code`.
+- [ ] Uploads longos: o arquivo atravessa o proxy do Next, com timeout padrão de 30 s (`experimental.proxyTimeout`), enquanto a API aceita até 30 min por requisição. Ajustar esse valor e os limites dos intermediários antes de liberar vídeos, e testar com um arquivo de 200 MiB. O `matcher` do `proxy.ts` não pode passar a incluir `/api`, porque o Next guarda em memória o corpo das requisições que passam por ele, até 10 MB (`proxyClientMaxBodySize`). Não há upload direto nem em partes.
+- [ ] Compressão de imagens no cliente: opcional, só se o tamanho dos envios for um problema no uso real. A **remoção de metadados EXIF** (GPS) é feita pela API antes de gravar, sem reencodar a imagem, então o front não precisa fazê-la. Metadados de vídeos e PDFs ainda são gravados como vieram (pendente na API).
+- [ ] Visualização: galeria de imagens, player de vídeo, pré-visualização de PDF e download para outros formatos, por `GET .../attachments/:attachmentId/download`, que devolve o anexo com `downloadUrl` e `downloadUrlExpiresAt`. A URL vale 5 min e cada pedido é auditado: buscá-la só quando o usuário abrir o anexo (sem pré-carregar a galeria), não guardá-la e pedir outra quando vencer.
+- [ ] Exigir a autorização de uso de imagem antes de enviar fotos e vídeos: o registro existe desde a Fase 1, e a seção do paciente mostra se ela está ativa, ausente ou com renovação necessária. O bloqueio real é da API e **ainda não existe** (ver [Pendências na API](#pendências-na-api)): o front avisa e impede o envio, mas a API aceita.
 - [ ] Anexos não são editados nem apagados: são anulados junto com o registro; para trocar um arquivo, anula-se o registro e anexa-se de novo.
 
 ### Fase 4 — Direitos do titular e auditoria
@@ -164,13 +164,13 @@ Definidos em 04/11/2026. Cada item diz o que a API faz **hoje** e o que foi acor
 - O cookie passa a ser do domínio do front, como cookie primário, e funciona em qualquer domínio da API. O `SameSite=Strict` continua, o que também protege contra CSRF.
 - O `proxy.ts` passa a ser possível: ele só verifica **se o cookie existe** para redirecionar ao login antes de renderizar. A validação continua sendo da API, e o guard no cliente (`app/(authenticated)/layout.tsx`) é mantido para o 401 de sessão expirada.
 - O CORS da API deixa de ser usado pelo navegador; os headers da resposta (`x-request-id`, `RateLimit`, `X-Session-Expires-At`) ficam legíveis sem `exposedHeaders`.
-- Os uploads da Fase 3 **não** passam pelo proxy: vão direto ao storage por URL assinada.
+- Os uploads da Fase 3 **passam** pelo proxy (decisão da API em 09/11/2026: todo arquivo passa por ela). O download não: vai direto ao storage, por URL assinada de curta duração gerada e auditada pela API.
 
 **Requisitos de deploy (verificar antes do primeiro paciente real):**
 
 - **IP real do cliente.** A auditoria (LGPD, art. 37) e o rate limit usam o IP. O proxy do Next 16.2 só adiciona `x-forwarded-host`, não `X-Forwarded-For`. Por isso, o Next deve ficar atrás de um proxy reverso ou plataforma que defina o `X-Forwarded-For`, e a `TRUST_PROXY` da API deve ser ajustada a esses intermediários (padrão `1`). Antes do primeiro paciente real, conferir com uma requisição real que o IP gravado na auditoria é o do navegador. Sem isso, todas as requisições aparecem com o IP do servidor do Next.
 - O servidor do Next não registra corpo nem query string das requisições repassadas (dados de pacientes e termos de busca).
-- O proxy tem timeout padrão de 30 s (`experimental.proxyTimeout`). Isso deve ser revisto se a exportação (Fase 4) for síncrona e lenta.
+- O proxy tem timeout padrão de 30 s (`experimental.proxyTimeout`). Isso precisa ser revisto para o upload de anexos (Fase 3), já que a API aceita até 30 min por requisição, e para a exportação (Fase 4), se ela for síncrona e lenta.
 
 ### Expiração da sessão
 
@@ -230,8 +230,8 @@ Mudanças acordadas que dependem do `care-track-api`:
 - [x] Corpo da requisição ilegível responde 4xx em vez de 500: JSON malformado vira 400 com `code: "INVALID_REQUEST_BODY"`, e corpo acima do limite (100 KB) vira 413 com `REQUEST_BODY_TOO_LARGE`.
 - [ ] Código próprio para CPF ou Cartão SUS já cadastrado (ex.: `PATIENT_CPF_ALREADY_EXISTS`, `PATIENT_CNS_ALREADY_EXISTS`), no lugar do `CONFLICT` genérico da chave única, para o formulário apontar o campo. Até lá, o front mostra a mensagem genérica no toast.
 - [ ] Recusar `collectedAt` anterior ao nascimento do paciente no registro do consentimento. Hoje a API aceita, e o front também (usa as mesmas validações).
-- [ ] Autorização de imagem vencida pela maioridade: hoje ela continua `active` na API, e o `hasActiveConsent` a considera válida. **Precisa estar pronto antes dos anexos da Fase 3**, para a API barrar novas imagens, já que o aviso do front não é a barreira real. Avaliar também a renovação em uma só operação, no lugar de revogar e registrar separadamente.
-- [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, anexos (Fase 3), relatório de acessos e exportação (Fase 4).
+- [ ] **Exigir autorização ativa no upload de fotos e vídeos** (`POST /attachments` hoje não consulta o consentimento, e o `hasActiveConsent` não é usado por nenhuma rota). A autorização vencida pela maioridade continua `active` na API e também precisa ser recusada. Fazer antes do primeiro paciente real. Avaliar também a renovação em uma só operação, no lugar de revogar e registrar separadamente. Registrado no `docs/roadmap.md` da API em 09/11/2026, junto dos outros itens desta lista.
+- [ ] Rotas ainda inexistentes que o front vai precisar: edição do perfil, relatório de acessos e exportação (Fase 4).
 
 ---
 
@@ -274,22 +274,30 @@ Resposta de paciente: `{ id, name, birthDate, cpf, cns, phone, archivedAt, creat
 
 ### Registros do histórico
 
-Resposta de registro: `{ id, patientId, content, version, author: { id, name, coren, corenState }, createdAt, editedAt, voidedAt, voidReason, voidReasonDetails }`.
+Resposta de registro: `{ id, patientId, content, version, author: { id, name, coren, corenState }, createdAt, editedAt, voidedAt, voidReason, voidReasonDetails, attachments }` (`content` pode ser nulo em registro só com arquivos; `attachments` são os anexos do registro).
 
 | Método | Rota | Uso |
 |---|---|---|
 | `GET` | `/patients/:id/records?status=&cursor=&limit=` | Linha do tempo → `{ items, nextCursor }` |
-| `POST` | `/patients/:id/records` | Criar `{ content }`. 409 se paciente arquivado |
+| `POST` | `/patients/:id/records` | Criar `{ content?, attachmentIds? }` (ao menos um dos dois; até 20 anexos). 409 se paciente arquivado |
 | `PUT` | `/patients/:id/records/:recordId` | Editar `{ content, version, reason? }`. 409 se a versão estiver desatualizada; 422 se o conteúdo não mudou |
 | `GET` | `/patients/:id/records/:recordId/versions` | Versões, da mais nova para a mais antiga |
 | `POST` | `/patients/:id/records/:recordId/void` | Anular `{ reason: "wrong_patient"\|"duplicate"\|"other", details? }` (definitivo) |
+
+### Anexos
+
+Resposta de anexo: `{ id, patientId, recordId, fileName, contentType, size, sha256, createdAt }`.
+
+| Método | Rota | Uso |
+|---|---|---|
+| `POST` | `/patients/:id/attachments` | Enviar um arquivo (multipart, campo `file`). O anexo nasce sem registro (`recordId` nulo) |
+| `GET` | `/patients/:id/attachments/:attachmentId/download` | Obter o anexo com `downloadUrl` e `downloadUrlExpiresAt`; a URL vale 5 min |
 
 ### Ainda não existem
 
 | Uso | Fase |
 |---|---|
 | Editar o perfil (nome, COREN/UF) | 0 |
-| Anexos: iniciar upload (URL assinada) e obter URL temporária de visualização | 3 |
 | Relatório de acessos do paciente (a partir da auditoria) | 4 |
 | Exportação dos dados do paciente | 4 |
 
@@ -301,7 +309,7 @@ Já respondidas pela API (detalhes no `docs/roadmap.md` dela):
 
 - **Dono do paciente:** a enfermeira que o cadastrou. Ela é a controladora dos dados dos pacientes, e o CareTrack é o operador.
 - **Compartilhamento entre profissionais:** fica para depois.
-- **Anexos:** armazenamento compatível com S3, bucket privado, de preferência em região no Brasil, com limite por arquivo configurável. O provedor ainda será escolhido na Fase 3.
+- **Anexos:** armazenamento compatível com S3, bucket privado. Na fase de testes, Oracle Cloud em São Paulo; o provedor será revisto antes do primeiro paciente real. Todo arquivo passa pela API, e o download é por URL assinada de curta duração.
 - **Menores de idade:** sim. O consentimento de imagem de menor exige o responsável legal.
 - **Exclusão definitiva:** não existe no app. Só como procedimento administrativo do operador (ordem judicial ou da ANPD), registrado na auditoria.
 - **Autorização de imagem e maioridade** (decidido em 09/11/2026, pelo responsável do produto): a autorização dada pelo responsável legal enquanto o paciente era menor deixa de valer quando ele completa 18 anos e precisa ser renovada. A autorização dada por responsável legal de quem já era adulto na coleta não é afetada. O front já reflete a regra; falta a API (ver [Pendências na API](#pendências-na-api)). Incluir na revisão jurídica.
