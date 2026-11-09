@@ -67,6 +67,53 @@ test("carrega os registros anteriores ao rolar até o fim da lista", async ({ pa
   expect(api.count(`GET /patients/${manyRecordsId}/records`)).toBe(2);
 });
 
+test("anula um registro, que sai da linha do tempo e aparece nos anulados", async ({ page, api, cspViolations }) => {
+  await page.goto(`/pacientes/${manyRecordsId}`);
+  const section = page.getByRole("region", { name: "Histórico" });
+  const items = section.getByRole("listitem");
+  await expect(items.first()).toContainText("Evolução número 25.");
+
+  await section.getByRole("button", { name: /^Anular registro de / }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Anular registro?" });
+  await expect(dialog.getByRole("button", { name: "Cancelar" })).toBeFocused();
+  await expect(dialog).toContainText("Evolução número 25.");
+
+  await dialog.getByRole("radio", { name: "Outro motivo" }).check();
+  await dialog.getByRole("button", { name: "Anular" }).click();
+  await expect(dialog.getByText("Descreva o motivo da anulação")).toBeVisible();
+
+  await dialog.getByRole("textbox", { name: "Descrição" }).fill("Lançado no horário errado");
+  await dialog.getByRole("button", { name: "Anular" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("Registro anulado.")).toBeVisible();
+  await expect(section.getByRole("heading", { name: "Registros", exact: true })).toBeFocused();
+  await expect(items.first()).toContainText("Evolução número 24.");
+  expect(api.voidedRecords).toEqual([{ reason: "other", details: "Lançado no horário errado" }]);
+
+  await section.getByRole("button", { name: "Anulados" }).click();
+
+  await expect(items).toHaveCount(1);
+  await expect(items).toContainText("Evolução número 25.");
+  await expect(items).toContainText("Motivo: Outro motivo");
+  await expect(items).toContainText("Lançado no horário errado");
+  await expect(section.getByRole("button", { name: /^Anular registro/ })).toHaveCount(0);
+  expect(cspViolations).toEqual([]);
+});
+
+test("cancelar a anulação devolve o foco ao botão e não envia nada", async ({ page, api }) => {
+  await page.goto(`/pacientes/${manyRecordsId}`);
+  const section = page.getByRole("region", { name: "Histórico" });
+  const opener = section.getByRole("button", { name: /^Anular registro de / }).first();
+
+  await opener.click();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
+
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(opener).toBeFocused();
+  expect(api.voidedRecords).toEqual([]);
+});
+
 test("paciente arquivado mostra os registros, mas não aceita novos", async ({ page }) => {
   await page.goto(`/pacientes/${archivedId}`);
   const section = page.getByRole("region", { name: "Histórico" });
@@ -74,6 +121,7 @@ test("paciente arquivado mostra os registros, mas não aceita novos", async ({ p
   await expect(section.getByText("Registro guardado.")).toBeVisible();
   await expect(section.getByRole("textbox")).toHaveCount(0);
   await expect(section.getByRole("button", { name: "Salvar registro" })).toHaveCount(0);
+  await expect(section.getByRole("button", { name: /^Anular registro/ })).toHaveCount(0);
 });
 
 test("arquivar com texto não salvo preserva o texto e reativar permite salvar", async ({ page, api }) => {

@@ -118,6 +118,7 @@ export class FakeApi {
   consents: FakeConsent[] = [];
   records: FakeRecord[] = [];
   readonly createdRecords: unknown[] = [];
+  readonly voidedRecords: unknown[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -228,6 +229,12 @@ export class FakeApi {
         : this.createRecord(route, patientId, request.postDataJSON());
     }
 
+    const voidMatch = /^POST \/patients\/([^/]+)\/records\/([^/]+)\/void$/.exec(call);
+
+    if (voidMatch) {
+      return this.voidRecord(route, decodeURIComponent(voidMatch[2]), request.postDataJSON());
+    }
+
     const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
 
     if (archiveMatch) {
@@ -296,7 +303,10 @@ export class FakeApi {
   private listRecords(route: Route, patientId: string, query: URLSearchParams) {
     const limit = Number(query.get("limit") ?? 20);
     const cursor = query.get("cursor");
-    const matches = this.records.filter((record) => record.patientId === patientId);
+    const voided = query.get("status") === "voided";
+    const matches = this.records.filter(
+      (record) => record.patientId === patientId && Boolean(record.voidedAt) === voided,
+    );
     const start = cursor ? matches.findIndex((record) => record.id === cursor) + 1 : 0;
     const items = matches.slice(start, start + limit);
     const hasMore = start + limit < matches.length;
@@ -327,6 +337,29 @@ export class FakeApi {
     this.records = [record, ...this.records];
 
     return route.fulfill({ status: 201, json: record, headers: this.sessionHeaders() });
+  }
+
+  private voidRecord(route: Route, recordId: string, body: { reason: string; details?: string }) {
+    this.voidedRecords.push(body);
+    const current = this.records.find((record) => record.id === recordId);
+
+    if (!current) {
+      return route.fulfill({ status: 404, json: { code: "RECORD_NOT_FOUND", message: "Registro não encontrado!" } });
+    }
+
+    if (current.voidedAt) {
+      return route.fulfill({ status: 409, json: { code: "RECORD_ALREADY_VOIDED", message: "Este registro já foi anulado." } });
+    }
+
+    const voided: FakeRecord = {
+      ...current,
+      voidedAt: new Date().toISOString(),
+      voidReason: body.reason,
+      voidReasonDetails: body.details ?? null,
+    };
+    this.records = this.records.map((record) => (record.id === recordId ? voided : record));
+
+    return route.fulfill({ json: voided, headers: this.sessionHeaders() });
   }
 
   private grantConsent(route: Route, patientId: string, body: Partial<FakeConsent>) {

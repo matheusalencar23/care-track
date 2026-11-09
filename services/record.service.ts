@@ -4,6 +4,7 @@ import type {
   PatientRecord,
   RecordPage,
   RecordPageParams,
+  VoidRecordData,
 } from "@/model/record";
 
 function recordsPath(patientId: string) {
@@ -23,5 +24,16 @@ export async function createRecord(
   data: CreateRecordData,
 ): Promise<PatientRecord> {
   const response = await api.post(recordsPath(patientId), data);
+  return response.data;
+}
+
+export async function voidRecord(
+  patientId: string,
+  { recordId, reason, details }: VoidRecordData,
+): Promise<PatientRecord> {
+  const response = await api.post(
+    `${recordsPath(patientId)}/${encodeURIComponent(recordId)}/void`,
+    details ? { reason, details } : { reason },
+  );
   return response.data;
 }

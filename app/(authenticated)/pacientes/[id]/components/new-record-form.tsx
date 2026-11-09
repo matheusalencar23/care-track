@@ -13,6 +13,7 @@ import z from "zod";
 
 interface Props {
   patient: Patient;
+  onSaved?: () => void;
 }
 
 const maxLengthLabel = RECORD_CONTENT_MAX_LENGTH.toLocaleString("pt-BR");
@@ -32,7 +33,7 @@ type RecordFormValues = z.infer<typeof schema>;
 
 const formFields = ["content"] as const;
 
-export default function NewRecordForm({ patient }: Props) {
+export default function NewRecordForm({ patient, onSaved }: Props) {
   const [savedCount, setSavedCount] = useState(0);
 
   const {
@@ -52,6 +53,7 @@ export default function NewRecordForm({ patient }: Props) {
     onDone: () => {
       reset();
       setSavedCount((count) => count + 1);
+      onSaved?.();
     },
     onValidationError: (err) => applyFieldErrors(err, setError, formFields),
   });

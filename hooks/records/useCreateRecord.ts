@@ -23,7 +23,7 @@ export function useCreateRecord(
     mutationFn: (data: CreateRecordData) => createRecord(patientId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.patients.records(patientId),
+        queryKey: queryKeys.patients.allRecords(patientId),
       });
       toast.success("Registro salvo.");
       onDone?.();

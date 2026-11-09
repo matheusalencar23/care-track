@@ -1,6 +1,12 @@
 export const RECORD_CONTENT_MAX_LENGTH = 20_000;
 
-export type RecordVoidReason = "wrong_patient" | "duplicate" | "other";
+export const RECORD_REASON_MAX_LENGTH = 500;
+
+export const RECORD_VOID_REASONS = ["wrong_patient", "duplicate", "other"] as const;
+
+export type RecordVoidReason = (typeof RECORD_VOID_REASONS)[number];
+
+export type RecordStatus = "active" | "voided";
 
 export interface RecordAuthor {
   id: string;
@@ -40,10 +46,17 @@ export interface RecordPage {
 }
 
 export interface RecordPageParams {
+  status: RecordStatus;
   cursor?: string;
   limit: number;
 }
 
 export interface CreateRecordData {
   content: string;
+}
+
+export interface VoidRecordData {
+  recordId: string;
+  reason: RecordVoidReason;
+  details?: string;
 }

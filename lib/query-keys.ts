@@ -1,4 +1,5 @@
 import type { PatientListParams } from "@/model/patient";
+import type { RecordStatus } from "@/model/record";
 
 export const queryKeys = {
   auth: {
@@ -11,6 +12,8 @@ export const queryKeys = {
       ["patients", "list", params] as const,
     detail: (id: string) => ["patients", "detail", id] as const,
     consents: (id: string) => ["patients", "consents", id] as const,
-    records: (id: string) => ["patients", "records", id] as const,
+    allRecords: (id: string) => ["patients", "records", id] as const,
+    records: (id: string, status: RecordStatus) =>
+      ["patients", "records", id, status] as const,
   },
 };

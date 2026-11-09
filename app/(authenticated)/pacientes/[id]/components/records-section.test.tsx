@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Patient } from "@/model/patient";
 import { RECORD_CONTENT_MAX_LENGTH, type PatientRecord } from "@/model/record";
 import { queryKeys } from "@/lib/query-keys";
-import { createRecord, listRecords } from "@/services/record.service";
+import { createRecord, listRecords, voidRecord } from "@/services/record.service";
 import { ApiError } from "@/shared/ApiError";
 import { createTestQueryClient, renderWithQueryClient } from "@/test/render";
 import { toast } from "react-toastify";
@@ -13,6 +13,7 @@ import RecordsSection from "./records-section";
 vi.mock("@/services/record.service", () => ({
   listRecords: vi.fn(),
   createRecord: vi.fn(),
+  voidRecord: vi.fn(),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -61,6 +62,7 @@ function saveButton() {
 beforeEach(() => {
   vi.mocked(listRecords).mockReset();
   vi.mocked(createRecord).mockReset();
+  vi.mocked(voidRecord).mockReset();
   vi.mocked(toast.success).mockReset();
   vi.mocked(toast.error).mockReset();
 });
@@ -79,7 +81,7 @@ describe("RecordsSection: linha do tempo", () => {
 
     const items = await screen.findAllByRole("listitem");
 
-    expect(listRecords).toHaveBeenCalledWith(patientId, { cursor: undefined, limit: 20 });
+    expect(listRecords).toHaveBeenCalledWith(patientId, { status: "active", cursor: undefined, limit: 20 });
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent("Ana Souza");
     expect(items[0]).toHaveTextContent("COREN-SP 123456");
@@ -140,7 +142,7 @@ describe("RecordsSection: linha do tempo", () => {
 
     expect(await screen.findByText("Texto a")).toBeVisible();
     expect(screen.getByText("Texto b")).toBeVisible();
-    expect(listRecords).toHaveBeenLastCalledWith(patientId, { cursor: "b", limit: 20 });
+    expect(listRecords).toHaveBeenLastCalledWith(patientId, { status: "active", cursor: "b", limit: 20 });
     expect(screen.queryByRole("button", { name: "Carregar registros anteriores" })).not.toBeInTheDocument();
   });
 
@@ -168,7 +170,7 @@ describe("RecordsSection: linha do tempo", () => {
     act(() => notify([{ isIntersecting: true }]));
 
     expect(await screen.findByText("Texto a")).toBeVisible();
-    expect(listRecords).toHaveBeenLastCalledWith(patientId, { cursor: "b", limit: 20 });
+    expect(listRecords).toHaveBeenLastCalledWith(patientId, { status: "active", cursor: "b", limit: 20 });
   });
 
   it("mantém os registros e permite tentar de novo se a página seguinte falhar", async () => {
@@ -187,7 +189,7 @@ describe("RecordsSection: linha do tempo", () => {
     await userEvent.click(within(alert).getByRole("button", { name: "Tentar novamente" }));
 
     expect(await screen.findByText("Texto a")).toBeVisible();
-    expect(listRecords).toHaveBeenLastCalledWith(patientId, { cursor: "b", limit: 20 });
+    expect(listRecords).toHaveBeenLastCalledWith(patientId, { status: "active", cursor: "b", limit: 20 });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
@@ -297,5 +299,163 @@ describe("RecordsSection: novo registro", () => {
     expect(textarea()).toHaveAttribute("readonly");
     expect(saveButton()).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent("este texto ainda não foi salvo");
+  });
+});
+
+describe("RecordsSection: anulação", () => {
+  const voidedRecord = record("anulado", {
+    content: "Texto anulado",
+    voidedAt: "2026-11-09T15:00:00.000Z",
+    voidReason: "other",
+    voidReasonDetails: "Lançado no horário errado",
+  });
+
+  async function openVoidDialog() {
+    await userEvent.click(await screen.findByRole("button", { name: /^Anular registro de / }));
+    return screen.getByRole("dialog", { name: "Anular registro?" });
+  }
+
+  beforeEach(() => {
+    vi.mocked(listRecords).mockImplementation(async (_id, { status }) =>
+      status === "voided"
+        ? { items: [voidedRecord], nextCursor: null }
+        : { items: [record("a")], nextCursor: null },
+    );
+  });
+
+  it("explica que é definitiva, mostra o registro e começa com o foco em Cancelar", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    const dialog = await openVoidDialog();
+
+    expect(dialog).toHaveTextContent("definitiva");
+    expect(dialog).toHaveTextContent("Texto a");
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toHaveFocus();
+  });
+
+  it("exige o motivo e a descrição quando o motivo é outro", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    const dialog = await openVoidDialog();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+    expect(await within(dialog).findByText("Informe o motivo da anulação")).toBeVisible();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Outro motivo" }));
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Descrição" }), "   ");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+
+    expect(await within(dialog).findByText("Descreva o motivo da anulação")).toBeVisible();
+    expect(voidRecord).not.toHaveBeenCalled();
+  });
+
+  it("anula com o motivo, sem descrição vazia, e devolve o foco à lista", async () => {
+    vi.mocked(voidRecord).mockResolvedValue(voidedRecord);
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    const dialog = await openVoidDialog();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Registro duplicado" }));
+    vi.mocked(listRecords).mockResolvedValue({ items: [], nextCursor: null });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+
+    await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+    expect(vi.mocked(voidRecord).mock.calls[0]).toEqual([patientId, { recordId: "a", reason: "duplicate" }]);
+    expect(toast.success).toHaveBeenCalledWith("Registro anulado.");
+    expect(screen.getByRole("heading", { name: "Registros" })).toHaveFocus();
+    expect(await screen.findByText("Nenhum registro neste histórico.")).toBeVisible();
+  });
+
+  it("envia a descrição sem espaços nas pontas", async () => {
+    vi.mocked(voidRecord).mockResolvedValue(voidedRecord);
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    const dialog = await openVoidDialog();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Outro motivo" }));
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Descrição" }), "  Horário errado  ");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+
+    await waitFor(() =>
+      expect(voidRecord).toHaveBeenCalledWith(patientId, {
+        recordId: "a",
+        reason: "other",
+        details: "Horário errado",
+      }),
+    );
+  });
+
+  it("mantém o diálogo aberto quando a anulação falha", async () => {
+    vi.mocked(voidRecord).mockRejectedValue(new ApiError("Erro.", { statusCode: 500 }));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    const dialog = await openVoidDialog();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Registro duplicado" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(dialog).toHaveAttribute("open");
+    expect(within(dialog).getByRole("button", { name: "Anular" })).toBeEnabled();
+  });
+
+  it("fecha e recarrega a lista se o registro já tiver sido anulado em outra aba", async () => {
+    vi.mocked(voidRecord).mockRejectedValue(
+      new ApiError("Este registro já foi anulado.", { statusCode: 409, code: "RECORD_ALREADY_VOIDED" }),
+    );
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    const dialog = await openVoidDialog();
+    const callsBefore = vi.mocked(listRecords).mock.calls.length;
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Registro duplicado" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anular" }));
+
+    await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+    expect(toast.error).toHaveBeenCalled();
+    await waitFor(() => expect(vi.mocked(listRecords).mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it("mostra os anulados com o motivo e sem a opção de anular", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await screen.findByText("Texto a");
+
+    await userEvent.click(screen.getByRole("button", { name: "Anulados" }));
+
+    const item = await screen.findByRole("listitem");
+    expect(listRecords).toHaveBeenLastCalledWith(patientId, { status: "voided", cursor: undefined, limit: 20 });
+    expect(screen.getByRole("button", { name: "Anulados" })).toHaveAttribute("aria-pressed", "true");
+    expect(item).toHaveTextContent("Texto anulado");
+    expect(item).toHaveTextContent("Anulado");
+    expect(item).toHaveTextContent("Motivo: Outro motivo");
+    expect(item).toHaveTextContent("Lançado no horário errado");
+    expect(screen.queryByRole("button", { name: /^Anular registro/ })).not.toBeInTheDocument();
+  });
+
+  it("indica quando não há registros anulados", async () => {
+    vi.mocked(listRecords).mockResolvedValue({ items: [], nextCursor: null });
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Anulados" }));
+
+    expect(await screen.findByText(/^Nenhum registro anulado\./)).toBeVisible();
+  });
+
+  it("volta para os ativos depois de salvar um registro novo", async () => {
+    vi.mocked(createRecord).mockResolvedValue(record("novo"));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await userEvent.click(screen.getByRole("button", { name: "Anulados" }));
+    await screen.findByText("Texto anulado");
+
+    await userEvent.type(textarea(), "Registro novo");
+    await userEvent.click(saveButton());
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Ativos" })).toHaveAttribute("aria-pressed", "true"),
+    );
+  });
+
+  it("não oferece anular registros de paciente arquivado", async () => {
+    renderWithQueryClient(
+      <RecordsSection patient={{ ...patient, archivedAt: "2026-10-01T12:00:00.000Z" }} />,
+    );
+
+    expect(await screen.findByText("Texto a")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Anular registro/ })).not.toBeInTheDocument();
   });
 });
