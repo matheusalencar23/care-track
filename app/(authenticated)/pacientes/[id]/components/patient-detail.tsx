@@ -1,20 +1,17 @@
 "use client";
 
 import Badge from "@/app/ui/badge";
-import Button from "@/app/ui/button";
-import EmptyState from "@/app/ui/empty-state";
 import LinkButton from "@/app/ui/link-button";
-import RequestId from "@/app/ui/request-id";
 import SensitiveValue from "@/app/ui/sensitive-value";
 import Skeleton from "@/app/ui/skeleton";
 import { usePatient } from "@/hooks/patients/usePatient";
 import { formatAge, formatDate, formatDateTime } from "@/lib/dates";
 import { formatWithMask, maskCns, maskCpf } from "@/lib/masks";
 import type { Patient } from "@/model/patient";
-import { ApiError, hasErrorCode } from "@/shared/ApiError";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { FaChevronLeft, FaUserSlash } from "react-icons/fa";
+import { FaPen } from "react-icons/fa";
+import BackLink from "../../components/back-link";
+import PatientLoadError from "../../components/patient-load-error";
 
 interface Props {
   id: string;
@@ -23,29 +20,8 @@ interface Props {
 const cardClassName =
   "rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-2xl sm:p-8";
 
-function isNotFound(error: unknown) {
-  return (
-    hasErrorCode(error, "PATIENT_NOT_FOUND") ||
-    (error instanceof ApiError &&
-      error.statusCode === 422 &&
-      error.errors.some((issue) => issue.location === "params"))
-  );
-}
-
 function NotInformed() {
   return <span className="text-slate-300">Não informado</span>;
-}
-
-function BackLink() {
-  return (
-    <Link
-      href="/pacientes"
-      className="inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-white"
-    >
-      <FaChevronLeft aria-hidden className="text-xs" />
-      Pacientes
-    </Link>
-  );
 }
 
 function PatientInfo({ patient }: { patient: Patient }) {
@@ -136,7 +112,7 @@ export default function PatientDetail({ id }: Props) {
   if (isPending) {
     return (
       <div className="mx-auto max-w-4xl space-y-2">
-        <BackLink />
+        <BackLink href="/pacientes">Pacientes</BackLink>
         <LoadingState />
       </div>
     );
@@ -145,36 +121,9 @@ export default function PatientDetail({ id }: Props) {
   if (!patient) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
-        <BackLink />
+        <BackLink href="/pacientes">Pacientes</BackLink>
 
-        {isNotFound(error) ? (
-          <EmptyState
-            icon={FaUserSlash}
-            title="Paciente não encontrado"
-            description="O endereço pode estar errado, ou o paciente não está na sua lista."
-            action={
-              <LinkButton href="/pacientes" block={false}>
-                Voltar para pacientes
-              </LinkButton>
-            }
-          />
-        ) : (
-          <div
-            role="alert"
-            className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/10 px-6 py-12 text-center shadow-2xl backdrop-blur-2xl"
-          >
-            <p>Não foi possível carregar o paciente.</p>
-            <RequestId error={error} />
-            <Button
-              type="button"
-              variant="secondary"
-              block={false}
-              onClick={() => refetch()}
-            >
-              Tentar novamente
-            </Button>
-          </div>
-        )}
+        <PatientLoadError error={error} onRetry={() => refetch()} />
       </div>
     );
   }
@@ -182,11 +131,26 @@ export default function PatientDetail({ id }: Props) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <BackLink />
+        <BackLink href="/pacientes">Pacientes</BackLink>
 
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold break-words">{patient.name}</h1>
-          {patient.archivedAt && <Badge tone="warning">Arquivado</Badge>}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold break-words">
+              {patient.name}
+            </h1>
+            {patient.archivedAt && <Badge tone="warning">Arquivado</Badge>}
+          </div>
+
+          {!patient.archivedAt && (
+            <LinkButton
+              href={`/pacientes/${patient.id}/editar`}
+              variant="secondary"
+              block={false}
+            >
+              <FaPen aria-hidden className="text-sm" />
+              Editar
+            </LinkButton>
+          )}
         </div>
 
         {patient.archivedAt && (

@@ -49,6 +49,7 @@ describe("PatientDetail", () => {
     expect(field("Telefone")).toHaveTextContent("(11) 98765-4321");
     expect(screen.queryByText("529.982.247-25")).not.toBeInTheDocument();
     expect(screen.queryByText("Arquivado")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Editar" })).toHaveAttribute("href", `/pacientes/${id}/editar`);
   });
 
   it("mostra o CPF completo só quando pedido", async () => {
@@ -83,6 +84,7 @@ describe("PatientDetail", () => {
 
     expect(await screen.findByText("Arquivado")).toBeVisible();
     expect(screen.getByText(/O prontuário continua guardado pelo prazo legal/)).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
   });
 
   it("mostra paciente não encontrado no 404 e no ID inválido", async () => {

@@ -65,6 +65,7 @@ export class FakeApi {
   readonly calls: string[] = [];
   readonly patientQueries: URLSearchParams[] = [];
   readonly createdPatients: unknown[] = [];
+  readonly updatedPatients: unknown[] = [];
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -144,6 +145,12 @@ export class FakeApi {
       return this.getPatient(route, decodeURIComponent(patientMatch[1]));
     }
 
+    const updateMatch = /^PUT \/patients\/([^/]+)$/.exec(call);
+
+    if (updateMatch) {
+      return this.updatePatient(route, decodeURIComponent(updateMatch[1]), request.postDataJSON());
+    }
+
     if (call === "POST /auth/signin") {
       const body = request.postDataJSON() as { email: string; password: string };
 
@@ -195,6 +202,35 @@ export class FakeApi {
     }
 
     return route.fulfill({ json: patient, headers: this.sessionHeaders() });
+  }
+
+  private updatePatient(route: Route, id: string, body: Partial<FakePatient>) {
+    this.updatedPatients.push(body);
+    const current = this.patients.find((patient) => patient.id === id);
+
+    if (!current) {
+      return route.fulfill({ status: 404, json: { code: "PATIENT_NOT_FOUND", message: "Paciente não encontrado!" } });
+    }
+
+    if (current.archivedAt) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado e não pode ser alterado." },
+      });
+    }
+
+    const updated: FakePatient = {
+      ...current,
+      name: body.name ?? current.name,
+      birthDate: body.birthDate ?? current.birthDate,
+      cpf: body.cpf ?? null,
+      cns: body.cns ?? null,
+      phone: body.phone ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    this.patients = this.patients.map((patient) => (patient.id === id ? updated : patient));
+
+    return route.fulfill({ json: updated, headers: this.sessionHeaders() });
   }
 
   private createPatient(route: Route, body: Partial<FakePatient>) {

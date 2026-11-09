@@ -27,3 +27,11 @@ export async function getPatient(id: string): Promise<Patient> {
   const response = await api.get(`/patients/${encodeURIComponent(id)}`);
   return response.data;
 }
+
+export async function updatePatient(
+  id: string,
+  data: PatientData,
+): Promise<Patient> {
+  const response = await api.put(`/patients/${encodeURIComponent(id)}`, data);
+  return response.data;
+}
