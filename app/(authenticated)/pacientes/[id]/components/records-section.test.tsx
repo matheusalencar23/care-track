@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Patient } from "@/model/patient";
 import { RECORD_CONTENT_MAX_LENGTH, type PatientRecord } from "@/model/record";
 import { queryKeys } from "@/lib/query-keys";
-import { createRecord, listRecords, voidRecord } from "@/services/record.service";
+import { createRecord, listRecordVersions, listRecords, updateRecord, voidRecord } from "@/services/record.service";
 import { ApiError } from "@/shared/ApiError";
 import { createTestQueryClient, renderWithQueryClient } from "@/test/render";
 import { toast } from "react-toastify";
@@ -14,10 +14,12 @@ vi.mock("@/services/record.service", () => ({
   listRecords: vi.fn(),
   createRecord: vi.fn(),
   voidRecord: vi.fn(),
+  updateRecord: vi.fn(),
+  listRecordVersions: vi.fn(),
 }));
 
 vi.mock("react-toastify", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 
 const patientId = "8f0c6d1e-0000-4000-8000-000000000001";
@@ -63,6 +65,10 @@ beforeEach(() => {
   vi.mocked(listRecords).mockReset();
   vi.mocked(createRecord).mockReset();
   vi.mocked(voidRecord).mockReset();
+  vi.mocked(updateRecord).mockReset();
+  vi.mocked(listRecordVersions).mockReset();
+  vi.mocked(toast.info).mockReset();
+  vi.mocked(toast.warning).mockReset();
   vi.mocked(toast.success).mockReset();
   vi.mocked(toast.error).mockReset();
 });
@@ -457,5 +463,269 @@ describe("RecordsSection: anulação", () => {
 
     expect(await screen.findByText("Texto a")).toBeVisible();
     expect(screen.queryByRole("button", { name: /^Anular registro/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("RecordsSection: edição", () => {
+  function editField() {
+    return screen.getByRole("textbox", { name: "Texto do registro" });
+  }
+
+  function saveEditButton() {
+    return screen.getByRole("button", { name: "Salvar alterações" });
+  }
+
+  async function openEditor() {
+    await userEvent.click(await screen.findByRole("button", { name: /^Editar registro de / }));
+  }
+
+  beforeEach(() => {
+    vi.mocked(listRecords).mockResolvedValue({ items: [record("a")], nextCursor: null });
+  });
+
+  it("abre no próprio registro com o texto atual e o foco no campo", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    await openEditor();
+
+    expect(editField()).toHaveValue("Texto a");
+    expect(editField()).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Motivo da edição" })).toHaveValue("");
+    expect(screen.getByRole("listitem")).toContainElement(editField());
+  });
+
+  it("salva com a versão editada e o motivo, fecha e devolve o foco ao botão", async () => {
+    vi.mocked(updateRecord).mockResolvedValue(
+      record("a", { content: "Texto corrigido", version: 2, editedAt: "2026-11-09T13:00:00.000Z" }),
+    );
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.clear(editField());
+    await userEvent.type(editField(), "  Texto corrigido  ");
+    await userEvent.type(screen.getByRole("textbox", { name: "Motivo da edição" }), " Erro de digitação ");
+    vi.mocked(listRecords).mockResolvedValue({
+      items: [record("a", { content: "Texto corrigido", version: 2, editedAt: "2026-11-09T13:00:00.000Z" })],
+      nextCursor: null,
+    });
+    await userEvent.click(saveEditButton());
+
+    expect(await screen.findByText("Texto corrigido")).toBeVisible();
+    expect(updateRecord).toHaveBeenCalledWith(patientId, {
+      recordId: "a",
+      content: "Texto corrigido",
+      version: 1,
+      reason: "Erro de digitação",
+    });
+    expect(toast.success).toHaveBeenCalledWith("Registro atualizado.");
+    expect(screen.queryByRole("textbox", { name: "Texto do registro" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Editar registro de / })).toHaveFocus();
+    expect(screen.getByRole("listitem")).toHaveTextContent("Editado em");
+  });
+
+  it("omite o motivo vazio", async () => {
+    vi.mocked(updateRecord).mockResolvedValue(record("a", { content: "Novo", version: 2 }));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.clear(editField());
+    await userEvent.type(editField(), "Novo");
+    await userEvent.click(saveEditButton());
+
+    await waitFor(() =>
+      expect(updateRecord).toHaveBeenCalledWith(patientId, { recordId: "a", content: "Novo", version: 1 }),
+    );
+  });
+
+  it("salvar sem mudar o texto só fecha, sem requisição", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.type(editField(), "   ");
+    await userEvent.click(saveEditButton());
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Texto do registro" })).not.toBeInTheDocument());
+    expect(updateRecord).not.toHaveBeenCalled();
+  });
+
+  it("não aceita texto vazio", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.clear(editField());
+    await userEvent.click(saveEditButton());
+
+    expect(await screen.findByText("Escreva o texto do registro")).toBeVisible();
+    expect(updateRecord).not.toHaveBeenCalled();
+  });
+
+  it("cancelar descarta o texto e devolve o foco ao botão", async () => {
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.type(editField(), " mudado");
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.getByText("Texto a")).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Editar registro de / })).toHaveFocus();
+    expect(updateRecord).not.toHaveBeenCalled();
+  });
+
+  it("permite uma edição por vez", async () => {
+    vi.mocked(listRecords).mockResolvedValue({ items: [record("b"), record("a")], nextCursor: null });
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    await userEvent.click((await screen.findAllByRole("button", { name: /^Editar registro de / }))[0]);
+
+    const [, other] = screen.getAllByRole("listitem");
+    expect(within(other).getByRole("button", { name: /^Editar registro de / })).toBeDisabled();
+    expect(within(other).getByRole("button", { name: /^Anular registro de / })).toBeDisabled();
+  });
+
+  it("mantém o texto digitado e mostra o atual quando o registro mudou em outra aba", async () => {
+    vi.mocked(updateRecord)
+      .mockRejectedValueOnce(
+        new ApiError("Este registro foi alterado depois que você o abriu.", {
+          statusCode: 409,
+          code: "RECORD_VERSION_OUTDATED",
+        }),
+      )
+      .mockResolvedValueOnce(record("a", { content: "Meu texto", version: 3 }));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.clear(editField());
+    await userEvent.type(editField(), "Meu texto");
+    vi.mocked(listRecords).mockResolvedValue({
+      items: [record("a", { content: "Texto da outra aba", version: 2, editedAt: "2026-11-09T13:00:00.000Z" })],
+      nextCursor: null,
+    });
+    await userEvent.click(saveEditButton());
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("alterado em outro lugar");
+    expect(alert).toHaveTextContent("Texto da outra aba");
+    expect(editField()).toHaveValue("Meu texto");
+    expect(toast.error).toHaveBeenCalled();
+
+    await userEvent.click(saveEditButton());
+
+    await waitFor(() =>
+      expect(updateRecord).toHaveBeenLastCalledWith(patientId, { recordId: "a", content: "Meu texto", version: 2 }),
+    );
+  });
+
+  it("fecha e avisa que o texto não foi salvo quando o registro foi anulado em outra aba", async () => {
+    vi.mocked(updateRecord).mockRejectedValue(
+      new ApiError("Este registro foi anulado e não pode ser alterado.", { statusCode: 409, code: "RECORD_VOIDED" }),
+    );
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.type(editField(), " mudado");
+    await userEvent.click(saveEditButton());
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Texto do registro" })).not.toBeInTheDocument());
+    expect(toast.error).toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith("O texto que você digitou não foi salvo.");
+  });
+
+  it("fecha com aviso quando a API diz que o texto não mudou", async () => {
+    vi.mocked(updateRecord).mockRejectedValue(
+      new ApiError("O conteúdo informado é igual ao da versão atual do registro.", {
+        statusCode: 422,
+        code: "RECORD_CONTENT_UNCHANGED",
+      }),
+    );
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.type(editField(), " mudado");
+    await userEvent.click(saveEditButton());
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Texto do registro" })).not.toBeInTheDocument());
+    expect(toast.info).toHaveBeenCalledWith("O conteúdo informado é igual ao da versão atual do registro.");
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("preserva o texto se o paciente for arquivado durante a edição", async () => {
+    vi.mocked(updateRecord).mockRejectedValue(
+      new ApiError("Paciente arquivado.", { statusCode: 409, code: "PATIENT_ARCHIVED" }),
+    );
+    const { rerender } = renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+
+    await userEvent.type(editField(), " mudado");
+    await userEvent.click(saveEditButton());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+
+    rerender(<RecordsSection patient={{ ...patient, archivedAt: "2026-11-09T12:00:00.000Z" }} />);
+
+    expect(editField()).toHaveValue("Texto a mudado");
+    expect(editField()).toHaveAttribute("readonly");
+    expect(saveEditButton()).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Fechar sem salvar" })).toBeEnabled();
+  });
+
+  it("não oferece editar registros anulados nem de paciente arquivado", async () => {
+    const { unmount } = renderWithQueryClient(
+      <RecordsSection patient={{ ...patient, archivedAt: "2026-10-01T12:00:00.000Z" }} />,
+    );
+    expect(await screen.findByText("Texto a")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Editar registro/ })).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(listRecords).mockResolvedValue({
+      items: [record("x", { voidedAt: "2026-11-09T15:00:00.000Z", voidReason: "duplicate" })],
+      nextCursor: null,
+    });
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await userEvent.click(screen.getByRole("button", { name: "Anulados" }));
+
+    expect(await screen.findByText("Texto x")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Editar registro/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("RecordsSection: versões anteriores", () => {
+  const author = { id: "autor-1", name: "Ana Souza", coren: "123456", corenState: "SP" };
+
+  it("só busca as versões quando pedido e lista as anteriores com o motivo", async () => {
+    vi.mocked(listRecords).mockResolvedValue({
+      items: [record("a", { content: "Texto atual", version: 2, editedAt: "2026-11-09T13:00:00.000Z" })],
+      nextCursor: null,
+    });
+    vi.mocked(listRecordVersions).mockResolvedValue([
+      { version: 2, content: "Texto atual", reason: "Erro de digitação", author, createdAt: "2026-11-09T13:00:00.000Z" },
+      { version: 1, content: "Texto original", reason: null, author, createdAt: "2026-11-09T12:00:00.000Z" },
+    ]);
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    const toggle = await screen.findByRole("button", { name: "Ver versões anteriores" });
+    expect(listRecordVersions).not.toHaveBeenCalled();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(toggle);
+
+    expect(await screen.findByText("Texto original")).toBeVisible();
+    expect(listRecordVersions).toHaveBeenCalledWith(patientId, "a");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAccessibleName("Ocultar versões anteriores");
+    expect(screen.getByText(/Versão 1/)).toBeVisible();
+    expect(screen.queryByText(/Versão 2/)).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
+    expect(screen.queryByText("Texto original")).not.toBeInTheDocument();
+  });
+
+  it("não mostra o botão em registro nunca editado", async () => {
+    vi.mocked(listRecords).mockResolvedValue({ items: [record("a")], nextCursor: null });
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+
+    await screen.findByText("Texto a");
+
+    expect(screen.queryByRole("button", { name: "Ver versões anteriores" })).not.toBeInTheDocument();
+    expect(screen.getByRole("listitem")).not.toHaveTextContent("Editado em");
   });
 });

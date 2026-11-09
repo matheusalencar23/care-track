@@ -114,6 +114,62 @@ test("cancelar a anulação devolve o foco ao botão e não envia nada", async (
   expect(api.voidedRecords).toEqual([]);
 });
 
+test("edita um registro no lugar e consulta a versão anterior", async ({ page, api, cspViolations }) => {
+  await page.goto(`/pacientes/${manyRecordsId}`);
+  const section = page.getByRole("region", { name: "Histórico" });
+  const first = section.getByRole("listitem").first();
+  await expect(first).toContainText("Evolução número 25.");
+
+  await first.getByRole("button", { name: /^Editar registro de / }).click();
+  const field = first.getByRole("textbox", { name: "Texto do registro" });
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue("Evolução número 25.");
+
+  await field.fill("Evolução número 25, corrigida.");
+  await first.getByRole("textbox", { name: "Motivo da edição" }).fill("Erro de digitação");
+  await first.getByRole("button", { name: "Salvar alterações" }).click();
+
+  await expect(page.getByText("Registro atualizado.")).toBeVisible();
+  await expect(first).toContainText("Evolução número 25, corrigida.");
+  await expect(first).toContainText("Editado em");
+  await expect(first.getByRole("button", { name: /^Editar registro de / })).toBeFocused();
+  expect(api.updatedRecords).toEqual([
+    { content: "Evolução número 25, corrigida.", version: 1, reason: "Erro de digitação" },
+  ]);
+
+  await first.getByRole("button", { name: "Ver versões anteriores" }).click();
+
+  await expect(first.getByText("Versão 1", { exact: false })).toBeVisible();
+  await expect(first.getByText("Evolução número 25.", { exact: true })).toBeVisible();
+  expect(api.count(`GET /patients/${manyRecordsId}/records/0b6f1c2a-8888-4000-8000-000000000000/versions`)).toBe(1);
+  expect(cspViolations).toEqual([]);
+});
+
+test("edição em outra aba não apaga o texto digitado", async ({ page, api }) => {
+  await page.goto(`/pacientes/${manyRecordsId}`);
+  const first = page.getByRole("region", { name: "Histórico" }).getByRole("listitem").first();
+
+  await first.getByRole("button", { name: /^Editar registro de / }).click();
+  const field = first.getByRole("textbox", { name: "Texto do registro" });
+  await field.fill("Meu texto");
+  api.editRecordElsewhere("0b6f1c2a-8888-4000-8000-000000000000", "Texto da outra aba");
+  await first.getByRole("button", { name: "Salvar alterações" }).click();
+
+  const alert = first.getByRole("alert");
+  await expect(alert).toContainText("alterado em outro lugar");
+  await expect(alert).toContainText("Texto da outra aba");
+  await expect(field).toHaveValue("Meu texto");
+
+  await first.getByRole("button", { name: "Salvar alterações" }).click();
+
+  await expect(first.getByRole("textbox")).toHaveCount(0);
+  await expect(first).toContainText("Meu texto");
+  expect(api.updatedRecords).toEqual([
+    { content: "Meu texto", version: 1 },
+    { content: "Meu texto", version: 2 },
+  ]);
+});
+
 test("paciente arquivado mostra os registros, mas não aceita novos", async ({ page }) => {
   await page.goto(`/pacientes/${archivedId}`);
   const section = page.getByRole("region", { name: "Histórico" });
@@ -122,6 +178,7 @@ test("paciente arquivado mostra os registros, mas não aceita novos", async ({ p
   await expect(section.getByRole("textbox")).toHaveCount(0);
   await expect(section.getByRole("button", { name: "Salvar registro" })).toHaveCount(0);
   await expect(section.getByRole("button", { name: /^Anular registro/ })).toHaveCount(0);
+  await expect(section.getByRole("button", { name: /^Editar registro/ })).toHaveCount(0);
 });
 
 test("arquivar com texto não salvo preserva o texto e reativar permite salvar", async ({ page, api }) => {

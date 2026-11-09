@@ -55,6 +55,21 @@ export interface CreateRecordData {
   content: string;
 }
 
+export interface UpdateRecordData {
+  recordId: string;
+  content: string;
+  version: number;
+  reason?: string;
+}
+
+export interface RecordVersion {
+  version: number;
+  content: string | null;
+  reason: string | null;
+  author: RecordAuthor;
+  createdAt: string;
+}
+
 export interface VoidRecordData {
   recordId: string;
   reason: RecordVoidReason;

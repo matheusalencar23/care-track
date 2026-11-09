@@ -72,6 +72,14 @@ export interface FakeRecord {
   attachments: unknown[];
 }
 
+export interface FakeRecordVersion {
+  version: number;
+  content: string | null;
+  reason: string | null;
+  author: FakeRecord["author"];
+  createdAt: string;
+}
+
 const fakeAuthor = { id: "0b6f1c2a-7777-4000-8000-000000000001", name: nurse.name, coren: nurse.coren, corenState: nurse.corenState };
 
 export function fakeRecord(overrides: Partial<FakeRecord> & Pick<FakeRecord, "id" | "patientId">): FakeRecord {
@@ -119,6 +127,8 @@ export class FakeApi {
   records: FakeRecord[] = [];
   readonly createdRecords: unknown[] = [];
   readonly voidedRecords: unknown[] = [];
+  readonly updatedRecords: unknown[] = [];
+  readonly recordVersions = new Map<string, FakeRecordVersion[]>();
   readonly signupBodies: unknown[] = [];
 
   constructor(
@@ -229,6 +239,27 @@ export class FakeApi {
         : this.createRecord(route, patientId, request.postDataJSON());
     }
 
+    const updateRecordMatch = /^PUT \/patients\/([^/]+)\/records\/([^/]+)$/.exec(call);
+
+    if (updateRecordMatch) {
+      return this.updateRecord(
+        route,
+        decodeURIComponent(updateRecordMatch[1]),
+        decodeURIComponent(updateRecordMatch[2]),
+        request.postDataJSON(),
+      );
+    }
+
+    const versionsMatch = /^GET \/patients\/([^/]+)\/records\/([^/]+)\/versions$/.exec(call);
+
+    if (versionsMatch) {
+      const record = this.records.find((item) => item.id === decodeURIComponent(versionsMatch[2]));
+
+      return record
+        ? route.fulfill({ json: this.versionsOf(record).toReversed(), headers: this.sessionHeaders() })
+        : route.fulfill({ status: 404, json: { code: "RECORD_NOT_FOUND", message: "Registro não encontrado!" } });
+    }
+
     const voidMatch = /^POST \/patients\/([^/]+)\/records\/([^/]+)\/void$/.exec(call);
 
     if (voidMatch) {
@@ -337,6 +368,83 @@ export class FakeApi {
     this.records = [record, ...this.records];
 
     return route.fulfill({ status: 201, json: record, headers: this.sessionHeaders() });
+  }
+
+  private versionsOf(record: FakeRecord) {
+    const versions = this.recordVersions.get(record.id) ?? [
+      { version: 1, content: record.content, reason: null, author: record.author, createdAt: record.createdAt },
+    ];
+    this.recordVersions.set(record.id, versions);
+
+    return versions;
+  }
+
+  editRecordElsewhere(recordId: string, content: string) {
+    const current = this.records.find((record) => record.id === recordId);
+
+    if (current) {
+      this.saveRecordVersion(current, content, null);
+    }
+  }
+
+  private saveRecordVersion(current: FakeRecord, content: string, reason: string | null) {
+    const now = new Date().toISOString();
+    const version = current.version + 1;
+    this.versionsOf(current).push({ version, content, reason, author: current.author, createdAt: now });
+    const updated: FakeRecord = { ...current, content, version, editedAt: now };
+    this.records = this.records.map((record) => (record.id === current.id ? updated : record));
+
+    return updated;
+  }
+
+  private updateRecord(
+    route: Route,
+    patientId: string,
+    recordId: string,
+    body: { content: string; version: number; reason?: string },
+  ) {
+    this.updatedRecords.push(body);
+    const current = this.records.find((record) => record.id === recordId);
+
+    if (!current) {
+      return route.fulfill({ status: 404, json: { code: "RECORD_NOT_FOUND", message: "Registro não encontrado!" } });
+    }
+
+    if (this.patients.find((patient) => patient.id === patientId)?.archivedAt) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado. Reative-o para alterar os dados." },
+      });
+    }
+
+    if (current.voidedAt) {
+      return route.fulfill({ status: 409, json: { code: "RECORD_VOIDED", message: "Este registro foi anulado e não pode ser alterado." } });
+    }
+
+    if (current.version !== body.version) {
+      return route.fulfill({
+        status: 409,
+        json: {
+          code: "RECORD_VERSION_OUTDATED",
+          message: "Este registro foi alterado depois que você o abriu. Recarregue-o e tente novamente.",
+        },
+      });
+    }
+
+    if (current.content === body.content) {
+      return route.fulfill({
+        status: 422,
+        json: {
+          code: "RECORD_CONTENT_UNCHANGED",
+          message: "O conteúdo informado é igual ao da versão atual do registro.",
+          errors: [],
+        },
+      });
+    }
+
+    const updated = this.saveRecordVersion(current, body.content, body.reason ?? null);
+
+    return route.fulfill({ json: updated, headers: this.sessionHeaders() });
   }
 
   private voidRecord(route: Route, recordId: string, body: { reason: string; details?: string }) {

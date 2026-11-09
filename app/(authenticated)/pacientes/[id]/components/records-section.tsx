@@ -1,16 +1,14 @@
 "use client";
 
-import Badge from "@/app/ui/badge";
 import Button from "@/app/ui/button";
 import RequestId from "@/app/ui/request-id";
 import Skeleton from "@/app/ui/skeleton";
 import { useRecords } from "@/hooks/records/useRecords";
-import { formatDateTime } from "@/lib/dates";
-import { voidReasonLabels } from "@/lib/records";
 import type { Patient } from "@/model/patient";
 import type { PatientRecord, RecordStatus } from "@/model/record";
 import { useEffect, useRef, useState } from "react";
 import NewRecordForm from "./new-record-form";
+import RecordItem from "./record-item";
 import VoidRecordDialog from "./void-record-dialog";
 
 interface Props {
@@ -21,86 +19,6 @@ const statusOptions: { value: RecordStatus; label: string }[] = [
   { value: "active", label: "Ativos" },
   { value: "voided", label: "Anulados" },
 ];
-
-function attachmentsLabel(count: number) {
-  return count === 1
-    ? "1 anexo. A visualização estará disponível em breve."
-    : `${count} anexos. A visualização estará disponível em breve.`;
-}
-
-function VoidInfo({ record }: { record: PatientRecord }) {
-  if (!record.voidedAt) {
-    return null;
-  }
-
-  return (
-    <div className="mt-3 rounded-xl border border-danger-400/30 bg-danger-500/10 p-3 text-sm">
-      <p>
-        Anulado em {formatDateTime(record.voidedAt)}
-        {record.voidReason && `. Motivo: ${voidReasonLabels[record.voidReason]}`}
-      </p>
-      {record.voidReasonDetails && (
-        <p className="mt-1 break-words">{record.voidReasonDetails}</p>
-      )}
-    </div>
-  );
-}
-
-interface RecordItemProps {
-  record: PatientRecord;
-  onVoid?: () => void;
-}
-
-function RecordItem({ record, onVoid }: RecordItemProps) {
-  const { author } = record;
-  const createdAt = formatDateTime(record.createdAt);
-
-  return (
-    <li className="border-t border-white/10 pt-5 first:border-t-0 first:pt-0">
-      <article>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-slate-300">
-            <span className="font-semibold text-white">{author.name}</span>
-            {` · COREN-${author.corenState} ${author.coren} · `}
-            <time dateTime={record.createdAt}>{createdAt}</time>
-            {record.voidedAt && (
-              <span className="ml-2">
-                <Badge tone="danger">Anulado</Badge>
-              </span>
-            )}
-          </p>
-
-          {onVoid && (
-            <button
-              type="button"
-              onClick={onVoid}
-              aria-label={`Anular registro de ${createdAt}`}
-              className="cursor-pointer rounded-lg px-2 py-1 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-            >
-              Anular
-            </button>
-          )}
-        </div>
-
-        {record.content && (
-          <p
-            className={`mt-2 break-words whitespace-pre-wrap ${record.voidedAt ? "text-slate-300" : ""}`}
-          >
-            {record.content}
-          </p>
-        )}
-
-        {record.attachments.length > 0 && (
-          <p className="mt-2 text-sm text-slate-300">
-            {attachmentsLabel(record.attachments.length)}
-          </p>
-        )}
-
-        <VoidInfo record={record} />
-      </article>
-    </li>
-  );
-}
 
 interface LoadMoreProps {
   isLoading: boolean;
@@ -151,6 +69,7 @@ export default function RecordsSection({ patient }: Props) {
   const [voiding, setVoiding] = useState<PatientRecord | null>(null);
   const [isVoidOpen, setIsVoidOpen] = useState(false);
   const [voidCount, setVoidCount] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const listTitleRef = useRef<HTMLHeadingElement>(null);
 
   const {
@@ -165,7 +84,13 @@ export default function RecordsSection({ patient }: Props) {
   } = useRecords(patient.id, status);
 
   const records = data?.pages.flatMap((page) => page.items);
-  const canVoid = status === "active" && !patient.archivedAt;
+  const canChange = status === "active" && !patient.archivedAt;
+  const editingRecord = records?.find((record) => record.id === editingId);
+
+  function changeStatus(next: RecordStatus) {
+    setEditingId(null);
+    setStatus(next);
+  }
 
   useEffect(() => {
     if (voidCount > 0) {
@@ -192,7 +117,7 @@ export default function RecordsSection({ patient }: Props) {
         Histórico
       </h2>
 
-      <NewRecordForm patient={patient} onSaved={() => setStatus("active")} />
+      <NewRecordForm patient={patient} onSaved={() => changeStatus("active")} />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
         <h3
@@ -213,7 +138,7 @@ export default function RecordsSection({ patient }: Props) {
               key={option.value}
               type="button"
               aria-pressed={status === option.value}
-              onClick={() => setStatus(option.value)}
+              onClick={() => changeStatus(option.value)}
               className={`flex-1 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
                 status === option.value
                   ? "bg-white text-blue-700"
@@ -258,8 +183,13 @@ export default function RecordsSection({ patient }: Props) {
             {records.map((record) => (
               <RecordItem
                 key={record.id}
+                patient={patient}
                 record={record}
-                onVoid={canVoid ? () => openVoid(record) : undefined}
+                isEditing={record.id === editingId}
+                actionsDisabled={Boolean(editingRecord)}
+                onEdit={canChange ? () => setEditingId(record.id) : undefined}
+                onCloseEdit={() => setEditingId(null)}
+                onVoid={canChange ? () => openVoid(record) : undefined}
               />
             ))}
           </ol>

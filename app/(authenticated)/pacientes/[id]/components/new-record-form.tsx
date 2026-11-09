@@ -4,7 +4,7 @@ import Button from "@/app/ui/button";
 import Textarea from "@/app/ui/textarea";
 import { useCreateRecord } from "@/hooks/records/useCreateRecord";
 import { applyFieldErrors } from "@/lib/form-errors";
-import { RECORD_CONTENT_MAX_LENGTH } from "@/model/record";
+import { recordContentHint, recordContentSchema } from "@/lib/records";
 import type { Patient } from "@/model/patient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -16,17 +16,8 @@ interface Props {
   onSaved?: () => void;
 }
 
-const maxLengthLabel = RECORD_CONTENT_MAX_LENGTH.toLocaleString("pt-BR");
-
 const schema = z.object({
-  content: z
-    .string()
-    .trim()
-    .min(1, "Escreva o texto do registro")
-    .max(
-      RECORD_CONTENT_MAX_LENGTH,
-      `O registro deve ter no máximo ${maxLengthLabel} caracteres`,
-    ),
+  content: recordContentSchema,
 });
 
 type RecordFormValues = z.infer<typeof schema>;
@@ -65,7 +56,6 @@ export default function NewRecordForm({ patient, onSaved }: Props) {
   }, [savedCount, setFocus]);
 
   const content = useWatch({ control, name: "content" });
-  const length = content.trim().length;
   const isArchived = Boolean(patient.archivedAt);
 
   if (isArchived && !content) {
@@ -82,7 +72,7 @@ export default function NewRecordForm({ patient, onSaved }: Props) {
         label="Novo registro"
         rows={5}
         readOnly={isArchived}
-        hint={`${length.toLocaleString("pt-BR")} de ${maxLengthLabel} caracteres. A autoria, a data e a hora são registradas automaticamente.`}
+        hint={`${recordContentHint(content)} A autoria, a data e a hora são registradas automaticamente.`}
         error={errors.content?.message}
         {...register("content")}
       />
