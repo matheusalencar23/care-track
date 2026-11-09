@@ -1,7 +1,6 @@
 "use client";
 
 import Badge from "@/app/ui/badge";
-import LinkButton from "@/app/ui/link-button";
 import SensitiveValue from "@/app/ui/sensitive-value";
 import Skeleton from "@/app/ui/skeleton";
 import { usePatient } from "@/hooks/patients/usePatient";
@@ -9,9 +8,9 @@ import { formatAge, formatDate, formatDateTime } from "@/lib/dates";
 import { formatWithMask, maskCns, maskCpf } from "@/lib/masks";
 import type { Patient } from "@/model/patient";
 import type { ReactNode } from "react";
-import { FaPen } from "react-icons/fa";
 import BackLink from "../../components/back-link";
 import PatientLoadError from "../../components/patient-load-error";
+import PatientActions from "./patient-actions";
 
 interface Props {
   id: string;
@@ -141,22 +140,14 @@ export default function PatientDetail({ id }: Props) {
             {patient.archivedAt && <Badge tone="warning">Arquivado</Badge>}
           </div>
 
-          {!patient.archivedAt && (
-            <LinkButton
-              href={`/pacientes/${patient.id}/editar`}
-              variant="secondary"
-              block={false}
-            >
-              <FaPen aria-hidden className="text-sm" />
-              Editar
-            </LinkButton>
-          )}
+          <PatientActions patient={patient} />
         </div>
 
         {patient.archivedAt && (
           <p className="mt-2 text-sm text-slate-300">
             Arquivado em {formatDateTime(patient.archivedAt)}. O prontuário
-            continua guardado pelo prazo legal e não pode receber alterações.
+            continua guardado pelo prazo legal e não pode receber alterações
+            enquanto o paciente estiver arquivado.
           </p>
         )}
       </div>

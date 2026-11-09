@@ -145,6 +145,12 @@ export class FakeApi {
       return this.getPatient(route, decodeURIComponent(patientMatch[1]));
     }
 
+    const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
+
+    if (archiveMatch) {
+      return this.setArchived(route, decodeURIComponent(archiveMatch[1]), archiveMatch[2] === "archive");
+    }
+
     const updateMatch = /^PUT \/patients\/([^/]+)$/.exec(call);
 
     if (updateMatch) {
@@ -202,6 +208,28 @@ export class FakeApi {
     }
 
     return route.fulfill({ json: patient, headers: this.sessionHeaders() });
+  }
+
+  private setArchived(route: Route, id: string, archive: boolean) {
+    const current = this.patients.find((patient) => patient.id === id);
+
+    if (!current) {
+      return route.fulfill({ status: 404, json: { code: "PATIENT_NOT_FOUND", message: "Paciente não encontrado!" } });
+    }
+
+    if (Boolean(current.archivedAt) === archive) {
+      return route.fulfill({
+        status: 409,
+        json: archive
+          ? { code: "PATIENT_ALREADY_ARCHIVED", message: "Este paciente já está arquivado." }
+          : { code: "PATIENT_NOT_ARCHIVED", message: "Este paciente não está arquivado." },
+      });
+    }
+
+    const updated: FakePatient = { ...current, archivedAt: archive ? new Date().toISOString() : null };
+    this.patients = this.patients.map((patient) => (patient.id === id ? updated : patient));
+
+    return route.fulfill({ json: updated, headers: this.sessionHeaders() });
   }
 
   private updatePatient(route: Route, id: string, body: Partial<FakePatient>) {

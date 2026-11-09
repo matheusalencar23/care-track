@@ -35,3 +35,15 @@ export async function updatePatient(
   const response = await api.put(`/patients/${encodeURIComponent(id)}`, data);
   return response.data;
 }
+
+export async function archivePatient(id: string): Promise<Patient> {
+  const response = await api.post(`/patients/${encodeURIComponent(id)}/archive`);
+  return response.data;
+}
+
+export async function unarchivePatient(id: string): Promise<Patient> {
+  const response = await api.post(
+    `/patients/${encodeURIComponent(id)}/unarchive`,
+  );
+  return response.data;
+}
