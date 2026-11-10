@@ -1,23 +1,17 @@
 "use client";
 
 import Button from "@/app/ui/button";
-import Modal from "@/app/ui/modal";
 import RequestId from "@/app/ui/request-id";
 import Skeleton from "@/app/ui/skeleton";
 import { useAttachmentDownload } from "@/hooks/attachments/useAttachmentDownload";
-import {
-  attachmentKind,
-  formatFileSize,
-  requiresImageConsent,
-} from "@/lib/attachments";
-import {
-  ATTACHMENT_DOWNLOAD_URL_TTL_MS,
-  type Attachment,
-} from "@/model/attachment";
+import { attachmentKind, requiresImageConsent } from "@/lib/attachments";
+import { notifyError } from "@/lib/notify-error";
+import type { Attachment } from "@/model/attachment";
 import { hasErrorCode } from "@/shared/ApiError";
-import Image from "next/image";
 import { useRef, useState } from "react";
 import { CONSENT_SECTION_ANCHOR } from "./attachment-uploader";
+import FilePreview, { PreviewMessage } from "./file-preview";
+import PreviewDialog from "./preview-dialog";
 
 interface Props {
   patientId: string;
@@ -36,15 +30,9 @@ interface PreviewProps {
   onClose: () => void;
 }
 
-const URL_SAFETY_MARGIN_MS = 30_000;
-
-const boxClassName = "rounded-xl border p-4";
-
 function ConsentRequired({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      className={`${boxClassName} border-warning-400/30 bg-warning-500/10`}
-    >
+    <div className="rounded-xl border border-warning-400/30 bg-warning-500/10 p-4">
       <p>
         A visualização de fotos e vídeos depende de uma autorização de uso de
         imagem ativa. O arquivo continua guardado e volta a abrir quando uma
@@ -70,8 +58,14 @@ function AttachmentPreview({
   const kind = attachmentKind(attachment.contentType);
   const blocked =
     requiresImageConsent(attachment.contentType) && canViewMedia === false;
-  const { data, dataUpdatedAt, error, isConsentRequired, isPending, refetch } =
-    useAttachmentDownload(patientId, attachment.id, { enabled: !blocked });
+  const {
+    data,
+    error,
+    isConsentRequired,
+    isPending,
+    refetch,
+    requestDownloadUrl,
+  } = useAttachmentDownload(patientId, attachment.id, { enabled: !blocked });
   const [renewed, setRenewed] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -127,70 +121,47 @@ function AttachmentPreview({
     setIsDownloading(true);
 
     try {
-      const isFresh =
-        Date.now() - dataUpdatedAt <
-        ATTACHMENT_DOWNLOAD_URL_TTL_MS - URL_SAFETY_MARGIN_MS;
-      const url = isFresh ? data?.downloadUrl : (await refetch()).data?.downloadUrl;
-
-      if (url) {
-        window.location.assign(url);
-      }
+      window.location.assign(await requestDownloadUrl());
+    } catch (err) {
+      notifyError(err);
     } finally {
       setIsDownloading(false);
     }
   }
 
-  const downloadButton = (
-    <Button
-      type="button"
-      variant="secondary"
-      block={false}
-      disabled={isDownloading}
-      onClick={download}
-    >
-      {isDownloading ? "Preparando..." : "Baixar arquivo"}
-    </Button>
-  );
-
   return (
     <div className="space-y-4">
-      {mediaFailed || (kind !== "image" && kind !== "video") ? (
-        <p className={`${boxClassName} border-white/10 bg-white/5`}>
-          {mediaFailed
-            ? "Não foi possível exibir o arquivo aqui. Baixe o arquivo para abri-lo."
-            : "A pré-visualização deste formato ainda não está disponível. Baixe o arquivo para abri-lo."}
-        </p>
-      ) : kind === "image" ? (
-        <div className="relative h-[60vh] w-full overflow-hidden rounded-xl bg-black/40">
-          <Image
-            src={data.downloadUrl}
-            alt={`Imagem anexada: ${attachment.fileName}`}
-            fill
-            unoptimized
-            className="object-contain"
-            onError={handleMediaError}
-          />
-        </div>
+      {mediaFailed ? (
+        <PreviewMessage>
+          Não foi possível exibir o arquivo aqui. Baixe o arquivo para abri-lo.
+        </PreviewMessage>
       ) : (
-        <video
-          ref={videoRef}
-          src={data.downloadUrl}
-          controls
-          preload="metadata"
+        <FilePreview
+          kind={kind}
+          url={data.downloadUrl}
+          fileName={attachment.fileName}
+          videoRef={videoRef}
           onError={handleMediaError}
-          onLoadedMetadata={(event) => {
+          onVideoLoadedMetadata={(event) => {
             if (resumeAt.current > 0) {
               event.currentTarget.currentTime = resumeAt.current;
               resumeAt.current = 0;
             }
           }}
-          className="max-h-[60vh] w-full rounded-xl bg-black"
-        >
-          Seu navegador não reproduz este vídeo. Baixe o arquivo para assistir.
-        </video>
+        />
       )}
 
-      <div className="flex justify-end">{downloadButton}</div>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="secondary"
+          block={false}
+          disabled={isDownloading}
+          onClick={download}
+        >
+          {isDownloading ? "Preparando..." : "Baixar arquivo"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -205,61 +176,29 @@ export default function AttachmentViewer({
   onClose,
 }: Props) {
   const attachment = attachments[index];
-  const total = attachments.length;
 
   if (!attachment) {
     return null;
   }
 
-  const footer =
-    total > 1 ? (
-      <>
-        <Button
-          type="button"
-          variant="secondary"
-          block={false}
-          disabled={index === 0}
-          onClick={() => onIndexChange(index - 1)}
-        >
-          Anterior
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          block={false}
-          disabled={index === total - 1}
-          onClick={() => onIndexChange(index + 1)}
-        >
-          Próximo
-        </Button>
-      </>
-    ) : undefined;
-
   return (
-    <Modal
+    <PreviewDialog
       open={open}
       onClose={onClose}
-      size="lg"
-      title={total > 1 ? `Anexo ${index + 1} de ${total}` : "Anexo"}
-      footer={footer}
+      title="Anexo"
+      fileName={attachment.fileName}
+      size={attachment.size}
+      index={index}
+      total={attachments.length}
+      onIndexChange={onIndexChange}
     >
-      <p className="mb-4 break-all">
-        <span className="font-semibold text-white">{attachment.fileName}</span>
-        <span className="text-slate-300">
-          {" · "}
-          {formatFileSize(attachment.size)}
-        </span>
-      </p>
-
-      {open && (
-        <AttachmentPreview
-          key={attachment.id}
-          patientId={patientId}
-          attachment={attachment}
-          canViewMedia={canViewMedia}
-          onClose={onClose}
-        />
-      )}
-    </Modal>
+      <AttachmentPreview
+        key={attachment.id}
+        patientId={patientId}
+        attachment={attachment}
+        canViewMedia={canViewMedia}
+        onClose={onClose}
+      />
+    </PreviewDialog>
   );
 }

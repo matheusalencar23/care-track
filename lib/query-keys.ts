@@ -1,3 +1,4 @@
+import type { AttachmentDisposition } from "@/model/attachment";
 import type { PatientListParams } from "@/model/patient";
 import type { RecordStatus } from "@/model/record";
 
@@ -17,7 +18,11 @@ export const queryKeys = {
       ["patients", "records", id, status] as const,
     recordVersions: (id: string, recordId: string) =>
       ["patients", "records", id, "versions", recordId] as const,
-    attachmentDownload: (id: string, attachmentId: string) =>
-      ["patients", "attachments", id, "download", attachmentId] as const,
+    attachmentDownload: (
+      id: string,
+      attachmentId: string,
+      disposition: AttachmentDisposition,
+    ) =>
+      ["patients", "attachments", id, "download", attachmentId, disposition] as const,
   },
 };

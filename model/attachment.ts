@@ -16,7 +16,7 @@ export const ATTACHMENT_FILE_NAME_MAX_LENGTH = 255;
 
 export const RECORD_ATTACHMENTS_MAX = 20;
 
-export const ATTACHMENT_DOWNLOAD_URL_TTL_MS = 5 * 60 * 1000;
+export type AttachmentDisposition = "attachment" | "inline";
 
 export interface Attachment {
   id: string;

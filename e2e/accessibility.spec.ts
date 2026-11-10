@@ -134,7 +134,7 @@ test.describe("área logada", () => {
     ];
     await page.goto(`/pacientes/${josé}`);
     await page.getByRole("button", { name: /ferida\.png/ }).click();
-    await expect(page.getByRole("img", { name: "Imagem anexada: ferida.png" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Imagem: ferida.png" })).toBeVisible();
 
     await expectNoViolations(page);
   });

@@ -1,4 +1,4 @@
-import { expect, fakeAttachment, fakePatient, fakeRecord, test, type FakeConsent } from "./fixtures";
+import { expect, fakeAttachment, fakePatient, fakeRecord, test, tinyPdf, type FakeConsent } from "./fixtures";
 
 const patientId = "0b6f1c2a-1111-4000-8000-000000000001";
 const patientPath = `/pacientes/${patientId}`;
@@ -45,7 +45,7 @@ test.describe("com autorização de uso de imagem", () => {
 
     await history.getByRole("list", { name: "Anexos" }).getByRole("button", { name: /ferida\.png/ }).click();
     const viewer = page.getByRole("dialog", { name: "Anexo" });
-    const image = viewer.getByRole("img", { name: "Imagem anexada: ferida.png" });
+    const image = viewer.getByRole("img", { name: "Imagem: ferida.png" });
     await expect(image).toBeVisible();
     await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
 
@@ -110,5 +110,62 @@ test.describe("sem autorização de uso de imagem", () => {
 
     await expect(viewer.getByText(/depende de uma autorização de uso de imagem ativa/)).toBeVisible();
     expect(api.calls.some((call) => call.includes("/download"))).toBe(false);
+  });
+});
+
+test.describe("pré-visualização de PDF", () => {
+  const recordId = "0b6f1c2a-6666-4000-8000-000000000201";
+  const pdfId = "0b6f1c2a-aaaa-4000-8000-000000000201";
+
+  test.use({
+    apiOptions: {
+      signedIn: true,
+      patients,
+      records: [
+        fakeRecord({
+          id: recordId,
+          patientId,
+          content: "Resultado do exame.",
+          attachments: [fakeAttachment({ id: pdfId, patientId, recordId, fileName: "exame.pdf" })],
+        }),
+      ],
+    },
+  });
+
+  test("mostra o PDF escolhido antes de salvar, sem enviar nada para exibir", async ({ page, api, cspViolations }) => {
+    await page.goto(patientPath);
+    const history = page.getByRole("region", { name: "Histórico" });
+
+    await history.locator('input[type="file"]').setInputFiles({ name: "laudo.pdf", mimeType: "application/pdf", buffer: tinyPdf });
+    await history.getByRole("button", { name: "Visualizar laudo.pdf" }).click();
+
+    const preview = page.getByRole("dialog", { name: "Pré-visualização" });
+    const frame = preview.getByTitle("Documento: laudo.pdf");
+    await expect(frame).toHaveAttribute("src", /^blob:/);
+    expect(api.calls.filter((call) => call.includes("/download"))).toEqual([]);
+
+    await page.keyboard.press("Escape");
+    await expect(history.getByRole("button", { name: "Visualizar laudo.pdf" })).toBeFocused();
+    expect(cspViolations).toEqual([]);
+  });
+
+  test("mostra o PDF salvo pela URL de exibição e baixa por outra", async ({ page, api, cspViolations }) => {
+    await page.goto(patientPath);
+
+    await page.getByRole("list", { name: "Anexos" }).getByRole("button", { name: /exame\.pdf/ }).click();
+    const viewer = page.getByRole("dialog", { name: "Anexo" });
+
+    await expect(viewer.getByTitle("Documento: exame.pdf")).toHaveAttribute(
+      "src",
+      `https://storage.e2e.test/${pdfId}?disposition=inline`,
+    );
+    await expect.poll(() => api.calls.includes(`STORAGE /${pdfId}?disposition=inline`)).toBe(true);
+
+    const downloadRequest = page.waitForRequest(`https://storage.e2e.test/${pdfId}?disposition=attachment`);
+    await viewer.getByRole("button", { name: "Baixar arquivo" }).click();
+    await downloadRequest;
+
+    expect(api.count(`GET /patients/${patientId}/attachments/${pdfId}/download`)).toBe(2);
+    expect(cspViolations).toEqual([]);
   });
 });

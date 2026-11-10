@@ -91,6 +91,10 @@ const tinyPng = Buffer.from(
   "base64",
 );
 
+export const tinyPdf = Buffer.from(
+  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n",
+);
+
 const extensionTypes: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
@@ -209,8 +213,19 @@ export class FakeApi {
 
     await this.page.route("**/api/v1/**", (route) => this.handle(route));
     await this.page.route(`${STORAGE_ORIGIN}/**`, (route) => {
-      this.calls.push(`STORAGE ${new URL(route.request().url()).pathname}`);
-      return route.fulfill({ body: tinyPng, contentType: "image/png" });
+      const url = new URL(route.request().url());
+      this.calls.push(`STORAGE ${url.pathname}${url.search}`);
+      const id = url.pathname.slice(1);
+      const attachment =
+        this.attachments.find((item) => item.id === id) ??
+        this.records.flatMap((record) => record.attachments).find((item) => item.id === id);
+      const isPdf = attachment?.contentType === "application/pdf";
+
+      return route.fulfill({
+        body: isPdf ? tinyPdf : tinyPng,
+        contentType: attachment?.contentType ?? "image/png",
+        headers: { "content-disposition": url.searchParams.get("disposition") ?? "attachment" },
+      });
     });
   }
 
@@ -337,7 +352,12 @@ export class FakeApi {
     const downloadMatch = /^GET \/patients\/([^/]+)\/attachments\/([^/]+)\/download$/.exec(call);
 
     if (downloadMatch) {
-      return this.downloadAttachment(route, decodeURIComponent(downloadMatch[1]), decodeURIComponent(downloadMatch[2]));
+      return this.downloadAttachment(
+        route,
+        decodeURIComponent(downloadMatch[1]),
+        decodeURIComponent(downloadMatch[2]),
+        new URL(request.url()).searchParams.get("disposition") ?? "attachment",
+      );
     }
 
     const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
@@ -465,7 +485,7 @@ export class FakeApi {
     return route.fulfill({ status: 201, json: attachment, headers: this.sessionHeaders() });
   }
 
-  private downloadAttachment(route: Route, patientId: string, attachmentId: string) {
+  private downloadAttachment(route: Route, patientId: string, attachmentId: string, disposition: string) {
     const attachment =
       this.attachments.find((item) => item.id === attachmentId) ??
       this.records.flatMap((record) => record.attachments).find((item) => item.id === attachmentId);
@@ -481,7 +501,7 @@ export class FakeApi {
     return route.fulfill({
       json: {
         ...attachment,
-        downloadUrl: `${STORAGE_ORIGIN}/${attachment.id}`,
+        downloadUrl: `${STORAGE_ORIGIN}/${attachment.id}?disposition=${disposition}`,
         downloadUrlExpiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       },
       headers: this.sessionHeaders(),

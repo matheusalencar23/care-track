@@ -261,6 +261,55 @@ describe("Novo registro com anexos", () => {
   });
 });
 
+describe("Pré-visualização antes de salvar", () => {
+  const createObjectURL = vi.fn<(blob: Blob) => string>();
+
+  beforeEach(() => {
+    let count = 0;
+    createObjectURL.mockReset().mockImplementation(() => `blob:local-${++count}`);
+    vi.stubGlobal(
+      "URL",
+      class extends URL {
+        static createObjectURL = createObjectURL;
+        static revokeObjectURL = vi.fn();
+      },
+    );
+  });
+
+  it("mostra a foto e o PDF escolhidos, sem pedir nada à API, e navega entre eles", async () => {
+    vi.mocked(uploadAttachment)
+      .mockResolvedValueOnce(attachment("anexo-1"))
+      .mockResolvedValueOnce(attachment("anexo-2", { contentType: "application/pdf" }));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await waitFor(() => expect(listConsents).toHaveBeenCalled());
+
+    await userEvent.upload(fileInput(), [file("ferida.png", "image/png"), file("exame.pdf", "application/pdf")]);
+    await userEvent.click(screen.getByRole("button", { name: "Visualizar ferida.png" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Pré-visualização 1 de 2" });
+    expect(within(dialog).getByRole("img", { name: "Imagem: ferida.png" }).getAttribute("src")).toMatch(/^blob:local-/);
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Próximo" }));
+
+    expect(within(dialog).getByTitle("Documento: exame.pdf").getAttribute("src")).toMatch(/^blob:local-/);
+    expect(getAttachmentDownload).not.toHaveBeenCalled();
+    expect(createObjectURL.mock.calls.at(-1)?.[0].type).toBe("application/pdf");
+  });
+
+  it("não oferece visualizar arquivo recusado nem foto sem autorização", async () => {
+    vi.mocked(listConsents).mockResolvedValue([]);
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await screen.findByText(/Fotos e vídeos exigem uma autorização de uso de imagem ativa\./);
+
+    await userEvent.upload(fileInput(), [
+      file("ferida.png", "image/png"),
+      file("planilha.xlsx", "application/vnd.ms-excel"),
+    ], { applyAccept: false });
+
+    expect(within(uploadList()).queryByRole("button", { name: /^Visualizar/ })).not.toBeInTheDocument();
+  });
+});
+
 describe("Visualização dos anexos", () => {
   const photo = attachment("foto-1", { recordId: "r1", fileName: "ferida.png" });
   const video = attachment("video-1", { recordId: "r1", fileName: "curativo.mp4", contentType: "video/mp4" });
@@ -285,11 +334,11 @@ describe("Visualização dos anexos", () => {
     const dialog = await openAttachment(/ferida\.png/);
 
     expect(within(dialog).getByRole("heading", { name: "Anexo 1 de 2" })).toBeVisible();
-    expect(await within(dialog).findByRole("img", { name: "Imagem anexada: ferida.png" })).toHaveAttribute(
+    expect(await within(dialog).findByRole("img", { name: "Imagem: ferida.png" })).toHaveAttribute(
       "src",
       "https://storage.test/foto-1",
     );
-    expect(getAttachmentDownload).toHaveBeenCalledWith(patientId, photo.id);
+    expect(getAttachmentDownload).toHaveBeenCalledWith(patientId, photo.id, "inline");
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Próximo" }));
 
@@ -323,20 +372,27 @@ describe("Visualização dos anexos", () => {
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("oferece baixar o PDF pela URL assinada", async () => {
+  it("mostra o PDF pela URL de exibição e baixa por outra URL, pedida no clique", async () => {
     const assign = vi.fn();
     vi.stubGlobal("location", { ...window.location, assign });
     vi.mocked(listRecords).mockResolvedValue({ items: [record("r1", [pdf])], nextCursor: null });
-    vi.mocked(getAttachmentDownload).mockResolvedValue(download(pdf));
+    vi.mocked(getAttachmentDownload).mockImplementation(async (_patientId, _attachmentId, disposition) =>
+      download(pdf, `https://storage.test/pdf-1?disposition=${disposition ?? "attachment"}`),
+    );
     renderWithQueryClient(<RecordsSection patient={patient} />);
 
     const dialog = await openAttachment(/exame\.pdf/);
 
-    expect(await within(dialog).findByText(/pré-visualização deste formato ainda não está disponível/)).toBeVisible();
+    expect(await within(dialog).findByTitle("Documento: exame.pdf")).toHaveAttribute(
+      "src",
+      "https://storage.test/pdf-1?disposition=inline",
+    );
+    expect(getAttachmentDownload).toHaveBeenCalledTimes(1);
+
     await userEvent.click(within(dialog).getByRole("button", { name: "Baixar arquivo" }));
 
-    expect(assign).toHaveBeenCalledWith("https://storage.test/pdf-1");
-    expect(getAttachmentDownload).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://storage.test/pdf-1?disposition=attachment"));
+    expect(getAttachmentDownload).toHaveBeenLastCalledWith(patientId, pdf.id);
   });
 
   it("mostra o erro com o código da requisição e tenta de novo", async () => {

@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import type {
   Attachment,
+  AttachmentDisposition,
   AttachmentDownload,
   UploadAttachmentOptions,
 } from "@/model/attachment";
@@ -33,9 +34,11 @@ export async function uploadAttachment(
 export async function getAttachmentDownload(
   patientId: string,
   attachmentId: string,
+  disposition: AttachmentDisposition = "attachment",
 ): Promise<AttachmentDownload> {
   const response = await api.get(
     `${attachmentsPath(patientId)}/${encodeURIComponent(attachmentId)}/download`,
+    disposition === "inline" ? { params: { disposition } } : undefined,
   );
   return response.data;
 }

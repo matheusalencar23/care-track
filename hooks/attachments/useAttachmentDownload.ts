@@ -14,8 +14,12 @@ export function useAttachmentDownload(
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: queryKeys.patients.attachmentDownload(patientId, attachmentId),
-    queryFn: () => getAttachmentDownload(patientId, attachmentId),
+    queryKey: queryKeys.patients.attachmentDownload(
+      patientId,
+      attachmentId,
+      "inline",
+    ),
+    queryFn: () => getAttachmentDownload(patientId, attachmentId, "inline"),
     enabled,
     gcTime: 0,
     staleTime: 0,
@@ -37,5 +41,21 @@ export function useAttachmentDownload(
     }
   }, [isConsentRequired, patientId, queryClient]);
 
-  return { ...query, isConsentRequired };
+  async function requestDownloadUrl() {
+    const download = await queryClient.fetchQuery({
+      queryKey: queryKeys.patients.attachmentDownload(
+        patientId,
+        attachmentId,
+        "attachment",
+      ),
+      queryFn: () => getAttachmentDownload(patientId, attachmentId),
+      staleTime: 0,
+      gcTime: 0,
+      retry: false,
+    });
+
+    return download.downloadUrl;
+  }
+
+  return { ...query, isConsentRequired, requestDownloadUrl };
 }

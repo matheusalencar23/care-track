@@ -12,6 +12,7 @@ import {
 import { RECORD_ATTACHMENTS_MAX } from "@/model/attachment";
 import { useId, useRef, useState, type DragEvent } from "react";
 import { FaPaperclip } from "react-icons/fa";
+import UploadPreview, { canPreviewUpload } from "./upload-preview";
 
 interface Props {
   uploads: AttachmentUpload[];
@@ -70,11 +71,13 @@ function UploadItem({
   onCancel,
   onRetry,
   onRemove,
+  onPreview,
 }: {
   upload: AttachmentUpload;
   onCancel: () => void;
   onRetry: () => void;
   onRemove: () => void;
+  onPreview?: () => void;
 }) {
   const { file, status } = upload;
   const isActive = status === "queued" || status === "uploading";
@@ -91,6 +94,16 @@ function UploadItem({
         </div>
 
         <div className="flex gap-1">
+          {onPreview && (
+            <button
+              type="button"
+              onClick={onPreview}
+              aria-label={`Visualizar ${file.name}`}
+              className={actionClassName}
+            >
+              Visualizar
+            </button>
+          )}
           {isActive && (
             <button
               type="button"
@@ -164,7 +177,14 @@ export default function AttachmentUploader({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const hintId = useId();
+
+  function openPreview(id: string) {
+    setPreviewId(id);
+    setIsPreviewOpen(true);
+  }
 
   function handleDragOver(event: DragEvent) {
     if (disabled || !event.dataTransfer.types.includes("Files")) {
@@ -253,9 +273,24 @@ export default function AttachmentUploader({
               onCancel={() => onCancel(upload.id)}
               onRetry={() => onRetry(upload.id)}
               onRemove={() => onRemove(upload.id)}
+              onPreview={
+                canPreviewUpload(upload)
+                  ? () => openPreview(upload.id)
+                  : undefined
+              }
             />
           ))}
         </ul>
+      )}
+
+      {previewId && (
+        <UploadPreview
+          uploads={uploads}
+          uploadId={previewId}
+          open={isPreviewOpen}
+          onUploadChange={setPreviewId}
+          onClose={() => setIsPreviewOpen(false)}
+        />
       )}
 
       <p aria-live="polite" className="sr-only">

@@ -34,6 +34,7 @@ function contentSecurityPolicy(nonce: string) {
     "font-src 'self'",
     `connect-src 'self'${isDev ? " ws:" : ""}`,
     `media-src 'self' blob:${storage}`,
+    `frame-src blob:${storage}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -10,6 +10,12 @@ if (!apiUrl) {
 
 const storageOrigin = process.env.STORAGE_ORIGIN;
 
+if (!storageOrigin) {
+  console.warn(
+    "A variável de ambiente STORAGE_ORIGIN não está definida: a CSP vai bloquear a exibição dos anexos. Configure-a em .env.local com a origem pública do storage (o S3_PUBLIC_ENDPOINT ou o S3_ENDPOINT da API).",
+  );
+}
+
 if (storageOrigin && !URL.canParse(storageOrigin)) {
   throw new Error(
     "A variável de ambiente STORAGE_ORIGIN deve ser uma URL, como https://storage.exemplo.com.",
