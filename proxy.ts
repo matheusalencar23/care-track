@@ -8,17 +8,32 @@ function isProtected(pathname: string) {
   );
 }
 
+function storageOrigin() {
+  const value = process.env.STORAGE_ORIGIN;
+
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return ` ${new URL(value).origin}`;
+  } catch {
+    return "";
+  }
+}
+
 function contentSecurityPolicy(nonce: string) {
   const isDev = process.env.NODE_ENV === "development";
+  const storage = storageOrigin();
 
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data:",
+    `img-src 'self' blob: data:${storage}`,
     "font-src 'self'",
     `connect-src 'self'${isDev ? " ws:" : ""}`,
-    "media-src 'self' blob:",
+    `media-src 'self' blob:${storage}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

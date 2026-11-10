@@ -1,4 +1,4 @@
-import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosHeaders, CanceledError, type InternalAxiosRequestConfig } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, hasErrorCode, isInvalidTokenError } from "@/shared/ApiError";
 import { api } from "./api";
@@ -168,6 +168,23 @@ describe("api", () => {
     await captureError(api.post("/auth/signin", {}));
 
     expect(location.replace).not.toHaveBeenCalled();
+  });
+});
+
+describe("api: cancelamento", () => {
+  it("repassa o cancelamento sem convertê-lo em erro de conexão", async () => {
+    api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      await new Promise((resolve) => config.signal?.addEventListener?.("abort", resolve));
+      throw new CanceledError(undefined, undefined, config);
+    };
+    const controller = new AbortController();
+    const request = api.get("/patients", { signal: controller.signal });
+
+    controller.abort();
+    const error = await captureError(request);
+
+    expect(axios.isCancel(error)).toBe(true);
+    expect(error).not.toBeInstanceOf(ApiError);
   });
 });
 

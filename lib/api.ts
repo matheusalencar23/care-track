@@ -52,6 +52,10 @@ api.interceptors.response.use(
     return response;
   },
   (error: unknown) => {
+    if (axios.isCancel(error)) {
+      throw error;
+    }
+
     if (axios.isAxiosError<ApiErrorResponse>(error)) {
       if (error.response?.status === 401) {
         clearSession();

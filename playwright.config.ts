@@ -19,6 +19,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     timeout: 240_000,
     reuseExistingServer: !process.env.CI,
-    env: { API_URL: "http://127.0.0.1:9/api/v1" },
+    env: { API_URL: "http://127.0.0.1:9/api/v1", STORAGE_ORIGIN: "https://storage.e2e.test" },
   },
 });

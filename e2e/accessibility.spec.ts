@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, fakeRecord, test } from "./fixtures";
+import { expect, fakeAttachment, fakeRecord, test } from "./fixtures";
 
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -85,6 +85,56 @@ test.describe("área logada", () => {
     ];
     await page.goto(`/pacientes/${josé}`);
     await expect(page.getByText("Curativo trocado.")).toBeVisible();
+
+    await expectNoViolations(page);
+  });
+
+  test("o novo registro com arquivos enviados e recusados não tem violações", async ({ page }) => {
+    await page.goto(`/pacientes/${josé}`);
+    const history = page.getByRole("region", { name: "Histórico" });
+    await history.locator('input[type="file"]').setInputFiles([
+      { name: "exame.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4") },
+      { name: "ferida.png", mimeType: "image/png", buffer: Buffer.from("png") },
+      { name: "planilha.xlsx", mimeType: "application/vnd.ms-excel", buffer: Buffer.from("xlsx") },
+    ]);
+    await expect(history.getByText(/Enviado/)).toBeVisible();
+    await expect(history.getByText(/Formato não aceito/)).toBeVisible();
+
+    await expectNoViolations(page);
+  });
+
+  test("o visualizador de anexos não tem violações", async ({ page, api }) => {
+    const recordId = "0b6f1c2a-2222-4000-8000-000000000002";
+    api.consents = [
+      {
+        id: "0b6f1c2a-4444-4000-8000-000000000001",
+        patientId: josé,
+        type: "image_capture",
+        method: "written",
+        grantor: "patient",
+        representativeName: null,
+        collectedAt: "2026-03-01T12:00:00.000Z",
+        status: "active",
+        needsRenewal: false,
+        revokedAt: null,
+        revocationReason: null,
+        createdAt: "2026-03-01T12:00:00.000Z",
+      },
+    ];
+    api.records = [
+      fakeRecord({
+        id: recordId,
+        patientId: josé,
+        content: null,
+        attachments: [
+          fakeAttachment({ id: "0b6f1c2a-aaaa-4000-8000-000000000001", patientId: josé, recordId, fileName: "ferida.png" }),
+          fakeAttachment({ id: "0b6f1c2a-aaaa-4000-8000-000000000002", patientId: josé, recordId, fileName: "exame.pdf" }),
+        ],
+      }),
+    ];
+    await page.goto(`/pacientes/${josé}`);
+    await page.getByRole("button", { name: /ferida\.png/ }).click();
+    await expect(page.getByRole("img", { name: "Imagem anexada: ferida.png" })).toBeVisible();
 
     await expectNoViolations(page);
   });

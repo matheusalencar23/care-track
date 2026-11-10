@@ -46,6 +46,7 @@ function consent(overrides: Partial<Consent> = {}): Consent {
     representativeName: null,
     collectedAt: "2026-03-01T12:00:00.000Z",
     status: "active",
+    needsRenewal: false,
     revokedAt: null,
     revocationReason: null,
     createdAt: "2026-03-01T12:00:00.000Z",

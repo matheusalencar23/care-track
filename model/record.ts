@@ -1,3 +1,5 @@
+import type { Attachment } from "@/model/attachment";
+
 export const RECORD_CONTENT_MAX_LENGTH = 20_000;
 
 export const RECORD_REASON_MAX_LENGTH = 500;
@@ -15,17 +17,6 @@ export interface RecordAuthor {
   corenState: string;
 }
 
-export interface RecordAttachment {
-  id: string;
-  patientId: string;
-  recordId: string | null;
-  fileName: string;
-  contentType: string;
-  size: number;
-  sha256: string;
-  createdAt: string;
-}
-
 export interface PatientRecord {
   id: string;
   patientId: string;
@@ -37,7 +28,7 @@ export interface PatientRecord {
   voidedAt: string | null;
   voidReason: RecordVoidReason | null;
   voidReasonDetails: string | null;
-  attachments: RecordAttachment[];
+  attachments: Attachment[];
 }
 
 export interface RecordPage {
@@ -52,7 +43,8 @@ export interface RecordPageParams {
 }
 
 export interface CreateRecordData {
-  content: string;
+  content?: string;
+  attachmentIds?: string[];
 }
 
 export interface UpdateRecordData {

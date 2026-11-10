@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Consent } from "@/model/consent";
-import { consentNeedsRenewal } from "./consents";
+import { consentNeedsRenewal, hasValidImageConsent } from "./consents";
 
 const birthDate = "2008-11-09";
 const beforeAdulthood = new Date("2026-11-08T12:00:00.000Z");
@@ -16,6 +16,7 @@ function consent(overrides: Partial<Consent> = {}): Consent {
     representativeName: "Rita Lima",
     collectedAt: "2020-01-01T12:00:00.000Z",
     status: "active",
+    needsRenewal: false,
     revokedAt: null,
     revocationReason: null,
     createdAt: "2020-01-01T12:00:00.000Z",
@@ -38,5 +39,17 @@ describe("consentNeedsRenewal", () => {
   it("não pede para autorização do próprio paciente nem para a revogada", () => {
     expect(consentNeedsRenewal(consent({ grantor: "patient" }), birthDate, afterAdulthood)).toBe(false);
     expect(consentNeedsRenewal(consent({ status: "revoked" }), birthDate, afterAdulthood)).toBe(false);
+  });
+});
+
+describe("hasValidImageConsent", () => {
+  it("aceita a autorização ativa que não precisa de renovação", () => {
+    expect(hasValidImageConsent([consent()])).toBe(true);
+  });
+
+  it("recusa lista vazia, autorização revogada e autorização que precisa de renovação", () => {
+    expect(hasValidImageConsent([])).toBe(false);
+    expect(hasValidImageConsent([consent({ status: "revoked", revokedAt: "2026-01-01T12:00:00.000Z" })])).toBe(false);
+    expect(hasValidImageConsent([consent({ needsRenewal: true })])).toBe(false);
   });
 });

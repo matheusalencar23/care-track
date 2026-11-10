@@ -190,7 +190,7 @@ test("arquivar com texto não salvo preserva o texto e reativar permite salvar",
   await page.getByRole("button", { name: "Arquivar" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Arquivar" }).click();
 
-  await expect(section.getByRole("alert")).toContainText("este texto ainda não foi salvo");
+  await expect(section.getByRole("alert")).toContainText("este registro ainda não foi salvo");
   await expect(field).toHaveValue("Texto ainda não salvo");
   await expect(field).not.toBeEditable();
   await expect(section.getByRole("button", { name: "Salvar registro" })).toBeDisabled();

@@ -8,6 +8,16 @@ if (!apiUrl) {
   );
 }
 
+const storageOrigin = process.env.STORAGE_ORIGIN;
+
+if (storageOrigin && !URL.canParse(storageOrigin)) {
+  throw new Error(
+    "A variável de ambiente STORAGE_ORIGIN deve ser uma URL, como https://storage.exemplo.com.",
+  );
+}
+
+const UPLOAD_PROXY_TIMEOUT_MS = 30 * 60 * 1000;
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -25,6 +35,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    proxyTimeout: UPLOAD_PROXY_TIMEOUT_MS,
+  },
   async rewrites() {
     return [
       {

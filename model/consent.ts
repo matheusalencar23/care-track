@@ -19,6 +19,7 @@ export interface Consent {
   representativeName: string | null;
   collectedAt: string;
   status: ConsentStatus;
+  needsRenewal: boolean;
   revokedAt: string | null;
   revocationReason: string | null;
   createdAt: string;

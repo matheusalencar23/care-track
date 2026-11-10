@@ -6,6 +6,7 @@ import { voidReasonLabels } from "@/lib/records";
 import type { Patient } from "@/model/patient";
 import type { PatientRecord } from "@/model/record";
 import { useEffect, useId, useRef, useState } from "react";
+import RecordAttachments from "./record-attachments";
 import RecordEditor from "./record-editor";
 import RecordVersions from "./record-versions";
 
@@ -21,12 +22,6 @@ interface Props {
 
 const actionClassName =
   "cursor-pointer rounded-lg px-2 py-1 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent";
-
-function attachmentsLabel(count: number) {
-  return count === 1
-    ? "1 anexo. A visualização estará disponível em breve."
-    : `${count} anexos. A visualização estará disponível em breve.`;
-}
 
 function VoidInfo({ record }: { record: PatientRecord }) {
   if (!record.voidedAt) {
@@ -135,9 +130,10 @@ export default function RecordItem({
         )}
 
         {record.attachments.length > 0 && (
-          <p className="mt-2 text-sm text-slate-300">
-            {attachmentsLabel(record.attachments.length)}
-          </p>
+          <RecordAttachments
+            patientId={record.patientId}
+            attachments={record.attachments}
+          />
         )}
 
         <VoidInfo record={record} />

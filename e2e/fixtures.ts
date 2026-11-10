@@ -53,6 +53,7 @@ export interface FakeConsent {
   representativeName: string | null;
   collectedAt: string;
   status: "active" | "revoked";
+  needsRenewal?: boolean;
   revokedAt: string | null;
   revocationReason: string | null;
   createdAt: string;
@@ -69,8 +70,64 @@ export interface FakeRecord {
   voidedAt: string | null;
   voidReason: string | null;
   voidReasonDetails: string | null;
-  attachments: unknown[];
+  attachments: FakeAttachment[];
 }
+
+export interface FakeAttachment {
+  id: string;
+  patientId: string;
+  recordId: string | null;
+  fileName: string;
+  contentType: string;
+  size: number;
+  sha256: string;
+  createdAt: string;
+}
+
+export const STORAGE_ORIGIN = "https://storage.e2e.test";
+
+const tinyPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const extensionTypes: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+};
+
+export function fakeAttachment(
+  overrides: Partial<FakeAttachment> & Pick<FakeAttachment, "id" | "patientId" | "fileName">,
+): FakeAttachment {
+  const extension = overrides.fileName.split(".").pop()?.toLowerCase() ?? "";
+
+  return {
+    recordId: null,
+    contentType: extensionTypes[extension] ?? "application/pdf",
+    size: tinyPng.length,
+    sha256: "e2e",
+    createdAt: "2026-11-01T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function isMedia(contentType: string) {
+  return contentType.startsWith("image/") || contentType.startsWith("video/");
+}
+
+const consentRequired = {
+  status: 409,
+  json: {
+    code: "ATTACHMENT_CONSENT_REQUIRED",
+    message: "Enviar ou abrir fotos e vídeos exige um consentimento de uso de imagem ativo para o paciente.",
+  },
+};
 
 export interface FakeRecordVersion {
   version: number;
@@ -130,6 +187,7 @@ export class FakeApi {
   readonly updatedRecords: unknown[] = [];
   readonly recordVersions = new Map<string, FakeRecordVersion[]>();
   readonly signupBodies: unknown[] = [];
+  attachments: FakeAttachment[] = [];
 
   constructor(
     private readonly page: Page,
@@ -150,6 +208,10 @@ export class FakeApi {
     }
 
     await this.page.route("**/api/v1/**", (route) => this.handle(route));
+    await this.page.route(`${STORAGE_ORIGIN}/**`, (route) => {
+      this.calls.push(`STORAGE ${new URL(route.request().url()).pathname}`);
+      return route.fulfill({ body: tinyPng, contentType: "image/png" });
+    });
   }
 
   count(call: string) {
@@ -266,6 +328,18 @@ export class FakeApi {
       return this.voidRecord(route, decodeURIComponent(voidMatch[2]), request.postDataJSON());
     }
 
+    const uploadMatch = /^POST \/patients\/([^/]+)\/attachments$/.exec(call);
+
+    if (uploadMatch) {
+      return this.uploadAttachment(route, decodeURIComponent(uploadMatch[1]), request.postDataBuffer());
+    }
+
+    const downloadMatch = /^GET \/patients\/([^/]+)\/attachments\/([^/]+)\/download$/.exec(call);
+
+    if (downloadMatch) {
+      return this.downloadAttachment(route, decodeURIComponent(downloadMatch[1]), decodeURIComponent(downloadMatch[2]));
+    }
+
     const archiveMatch = /^POST \/patients\/([^/]+)\/(archive|unarchive)$/.exec(call);
 
     if (archiveMatch) {
@@ -348,7 +422,73 @@ export class FakeApi {
     });
   }
 
-  private createRecord(route: Route, patientId: string, body: { content?: string }) {
+  hasImageConsent(patientId: string) {
+    return this.consents.some(
+      (consent) => consent.patientId === patientId && consent.status === "active" && !consent.needsRenewal,
+    );
+  }
+
+  private uploadAttachment(route: Route, patientId: string, body: Buffer | null) {
+    const fileName = /filename="([^"]+)"/.exec(body?.toString("utf8") ?? "")?.[1];
+
+    if (!fileName) {
+      return route.fulfill({
+        status: 422,
+        json: {
+          code: "VALIDATION_FAILED",
+          message: "Dados inválidos.",
+          errors: [{ location: "body", path: "file", message: "O arquivo é obrigatório" }],
+        },
+      });
+    }
+
+    if (this.patients.find((item) => item.id === patientId)?.archivedAt) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado. Reative-o para alterar os dados." },
+      });
+    }
+
+    const attachment = fakeAttachment({
+      id: `0b6f1c2a-aaaa-4000-8000-${String(this.attachments.length).padStart(12, "0")}`,
+      patientId,
+      fileName,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (isMedia(attachment.contentType) && !this.hasImageConsent(patientId)) {
+      return route.fulfill(consentRequired);
+    }
+
+    this.attachments = [...this.attachments, attachment];
+
+    return route.fulfill({ status: 201, json: attachment, headers: this.sessionHeaders() });
+  }
+
+  private downloadAttachment(route: Route, patientId: string, attachmentId: string) {
+    const attachment =
+      this.attachments.find((item) => item.id === attachmentId) ??
+      this.records.flatMap((record) => record.attachments).find((item) => item.id === attachmentId);
+
+    if (!attachment) {
+      return route.fulfill({ status: 404, json: { code: "ATTACHMENT_NOT_FOUND", message: "Anexo não encontrado!" } });
+    }
+
+    if (isMedia(attachment.contentType) && !this.hasImageConsent(patientId)) {
+      return route.fulfill(consentRequired);
+    }
+
+    return route.fulfill({
+      json: {
+        ...attachment,
+        downloadUrl: `${STORAGE_ORIGIN}/${attachment.id}`,
+        downloadUrlExpiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      },
+      headers: this.sessionHeaders(),
+    });
+  }
+
+  private createRecord(route: Route, patientId: string, body: { content?: string; attachmentIds?: string[] }) {
     this.createdRecords.push(body);
     const patient = this.patients.find((item) => item.id === patientId);
 
@@ -359,11 +499,31 @@ export class FakeApi {
       });
     }
 
+    const recordId = `0b6f1c2a-6666-4000-8000-${String(this.records.length).padStart(12, "0")}`;
+    const linked = (body.attachmentIds ?? []).map((id) => {
+      const attachment = this.attachments.find((item) => item.id === id && !item.recordId);
+
+      return attachment ? { ...attachment, recordId } : null;
+    });
+
+    if (linked.includes(null)) {
+      return route.fulfill({
+        status: 409,
+        json: { code: "ATTACHMENT_NOT_AVAILABLE", message: "Um dos anexos informados não está disponível para este registro." },
+      });
+    }
+
+    const attachments = linked as FakeAttachment[];
+    this.attachments = this.attachments.map(
+      (item) => attachments.find((attachment) => attachment.id === item.id) ?? item,
+    );
+
     const record = fakeRecord({
-      id: `0b6f1c2a-6666-4000-8000-${String(this.records.length).padStart(12, "0")}`,
+      id: recordId,
       patientId,
       content: body.content ?? null,
       createdAt: new Date().toISOString(),
+      attachments,
     });
     this.records = [record, ...this.records];
 
@@ -498,6 +658,7 @@ export class FakeApi {
       representativeName: body.representativeName ?? null,
       collectedAt: body.collectedAt ?? now,
       status: "active",
+      needsRenewal: false,
       revokedAt: null,
       revocationReason: null,
       createdAt: now,

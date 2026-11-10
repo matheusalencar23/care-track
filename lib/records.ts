@@ -25,3 +25,11 @@ export const recordContentSchema = z
 export function recordContentHint(content: string) {
   return `${content.trim().length.toLocaleString("pt-BR")} de ${recordContentMaxLengthLabel} caracteres.`;
 }
+
+export const recordOptionalContentSchema = z
+  .string()
+  .trim()
+  .max(
+    RECORD_CONTENT_MAX_LENGTH,
+    `O registro deve ter no máximo ${recordContentMaxLengthLabel} caracteres`,
+  );

@@ -18,6 +18,10 @@ vi.mock("@/services/record.service", () => ({
   listRecordVersions: vi.fn(),
 }));
 
+vi.mock("@/services/consent.service", () => ({
+  listConsents: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("react-toastify", () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
@@ -120,8 +124,8 @@ describe("RecordsSection: linha do tempo", () => {
     });
     renderWithQueryClient(<RecordsSection patient={patient} />);
 
-    expect(await screen.findByText(/^1 anexo\./)).toBeVisible();
-    expect(screen.queryByText("foto.jpg")).not.toBeInTheDocument();
+    const attachments = await screen.findByRole("list", { name: "Anexos" });
+    expect(within(attachments).getByRole("button", { name: /foto\.jpg/ })).toBeVisible();
   });
 
   it("mostra o erro com o código da requisição e tenta de novo", async () => {
@@ -227,7 +231,7 @@ describe("RecordsSection: novo registro", () => {
     await userEvent.type(textarea(), "   ");
     await userEvent.click(saveButton());
 
-    expect(await screen.findByText("Escreva o texto do registro")).toBeVisible();
+    expect(await screen.findByText("Escreva o texto do registro ou anexe um arquivo")).toBeVisible();
     expect(createRecord).not.toHaveBeenCalled();
   });
 
@@ -304,7 +308,7 @@ describe("RecordsSection: novo registro", () => {
     expect(textarea()).toHaveValue("Texto importante");
     expect(textarea()).toHaveAttribute("readonly");
     expect(saveButton()).toBeDisabled();
-    expect(screen.getByRole("alert")).toHaveTextContent("este texto ainda não foi salvo");
+    expect(screen.getByRole("alert")).toHaveTextContent("este registro ainda não foi salvo");
   });
 });
 

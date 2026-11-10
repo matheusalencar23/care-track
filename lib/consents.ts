@@ -13,3 +13,12 @@ export function consentNeedsRenewal(
     !isMinorAt(birthDate, now)
   );
 }
+
+export function hasValidImageConsent(consents: Consent[]) {
+  return consents.some(
+    (consent) =>
+      consent.type === "image_capture" &&
+      consent.status === "active" &&
+      !consent.needsRenewal,
+  );
+}

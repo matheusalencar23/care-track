@@ -10,7 +10,13 @@ interface Props {
   children: ReactNode;
   footer?: ReactNode;
   dismissible?: boolean;
+  size?: "md" | "lg";
 }
+
+const sizeClassNames = {
+  md: "max-w-lg",
+  lg: "max-w-4xl",
+};
 
 export default function Modal({
   open,
@@ -19,6 +25,7 @@ export default function Modal({
   children,
   footer,
   dismissible = true,
+  size = "md",
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -57,7 +64,7 @@ export default function Modal({
           requestClose();
         }
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-0 text-white shadow-2xl backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm"
+      className={`m-auto w-[calc(100%-2rem)] ${sizeClassNames[size]} rounded-3xl border border-white/10 bg-slate-900 p-0 text-white shadow-2xl backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm`}
     >
       <div className="p-6 sm:p-8">
         <div className="flex items-start justify-between gap-4">
