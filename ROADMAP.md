@@ -168,8 +168,13 @@ O histórico de registros é o centro da aplicação, mas hoje o detalhe do paci
 
 ### Fase 4 — Direitos do titular e auditoria
 
-- [ ] Exportar os dados de um paciente (cadastro + histórico + anexos) para atender pedidos de acesso e portabilidade.
-- [ ] Visualizar o histórico de auditoria do paciente: quem acessou ou alterou e quando.
+- [ ] Exportar os dados de um paciente (cadastro + histórico + anexos) para atender pedidos de acesso e portabilidade. **Implementado na API em 11/11/2026; falta o front** (ex.: botão "Exportar histórico" no cabeçalho do paciente, junto de "Editar" e "Arquivar"):
+  - `GET /patients/:id/export` devolve um `.zip` (`Content-Type: application/zip`, `Content-Disposition: attachment; filename=historico-paciente-<id>-<AAAA-MM-DD>.zip`) com `historico.pdf` (dados cadastrais, autorizações ativas e os registros ativos na versão atual, do mais antigo para o mais novo, com autor, COREN, data de edição e a lista de anexos) e a pasta `anexos/` com os arquivos originais, citados no PDF pelo caminho.
+  - Ficam de fora registros anulados, versões anteriores e autorizações revogadas. Fotos e vídeos seguem a regra da autorização de imagem: sem autorização `image_capture` ativa e sem `needsRenewal`, não entram, e o PDF indica o motivo; PDFs entram sempre. Vale avisar isso antes de exportar quando o paciente estiver sem autorização.
+  - Funciona para paciente arquivado. Cada exportação é auditada na API (`patient.export`). O nome do arquivo e os metadados do PDF não levam o nome do paciente.
+  - O download pode ser grande (anexos de até 200 MiB cada) e chega em streaming: usar um link ou `window.location` para a rota (o cookie de sessão vai junto pelo proxy), em vez de `fetch` + `Blob`, que carregaria tudo na memória. O proxy já tem timeout de 30 min (ver [Cookie de sessão e `proxy.ts`](#cookie-de-sessão-e-proxyts)).
+  - Erros antes do envio vêm no formato JSON de sempre (404 `PATIENT_NOT_FOUND`, 401, 429). Se a leitura de um anexo falhar no meio, a API encerra a conexão e o navegador mostra o download como falho ou incompleto, sem uma resposta de erro.
+- ~~Visualizar o histórico de auditoria do paciente: quem acessou ou alterou e quando.~~ **Cancelado (decisão de 11/11/2026).** O relatório de acessos ficou só com o operador, fora do front e da API: é um comando que lê a auditoria com um papel próprio, só de leitura, filtrando por paciente, profissional e período, em JSON ou CSV. Motivo: cada paciente só é visto pela enfermeira dona, então o relatório na tela mostraria apenas as ações dela mesma. Os usos reais (incidente, como uma conta comprometida; pedido do titular encaminhado pela enfermeira; pedido da ANPD ou da Justiça) passam pelo operador. Reavaliar se houver compartilhamento de pacientes entre profissionais.
 - [ ] Comprovação do consentimento de imagem (anexo do termo ou assinatura; forma em definição na API). O bloqueio de envio e de visualização de fotos e vídeos sem autorização ativa já existe na API (ver Fase 3).
 - [ ] Tela de informações de privacidade com o contato do encarregado (DPO).
 
