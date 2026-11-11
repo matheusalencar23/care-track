@@ -115,6 +115,28 @@ describe("EditPatient", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("mostra no campo a recusa de nascimento posterior a uma autorização", async () => {
+    vi.mocked(updatePatient).mockRejectedValue(
+      new ApiError("A data de nascimento é posterior a um consentimento.", {
+        statusCode: 422,
+        code: "PATIENT_BIRTH_DATE_AFTER_CONSENT",
+        errors: [{ location: "body", path: "birthDate", message: "Data posterior a um consentimento." }],
+      }),
+    );
+    renderWithQueryClient(<EditPatient id={id} />);
+    const birthDate = await screen.findByLabelText("Data de nascimento");
+    await userEvent.clear(birthDate);
+    await userEvent.type(birthDate, "2020-01-01");
+
+    await save();
+
+    await waitFor(() => expect(birthDate).toHaveAttribute("aria-invalid", "true"));
+    expect(birthDate).toHaveAccessibleDescription(/autorização de uso de imagem coletada antes desta data/);
+    expect(birthDate).toHaveFocus();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("mostra paciente não encontrado", async () => {
     vi.mocked(getPatient).mockRejectedValue(
       new ApiError("Paciente não encontrado!", { statusCode: 404, code: "PATIENT_NOT_FOUND" }),

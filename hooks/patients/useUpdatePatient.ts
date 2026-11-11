@@ -9,6 +9,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
+const FIELD_ERROR_CODES = ["VALIDATION_FAILED", "PATIENT_BIRTH_DATE_AFTER_CONSENT"];
+
 interface Options {
   onValidationError?: (err: unknown) => boolean;
 }
@@ -26,7 +28,10 @@ export function useUpdatePatient(id: string, { onValidationError }: Options = {}
       router.push(`/pacientes/${id}`);
     },
     onError: (err) => {
-      if (hasErrorCode(err, "VALIDATION_FAILED") && onValidationError?.(err)) {
+      if (
+        FIELD_ERROR_CODES.some((code) => hasErrorCode(err, code)) &&
+        onValidationError?.(err)
+      ) {
         return;
       }
 

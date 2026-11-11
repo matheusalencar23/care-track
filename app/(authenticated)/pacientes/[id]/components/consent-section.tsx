@@ -5,7 +5,6 @@ import Button from "@/app/ui/button";
 import RequestId from "@/app/ui/request-id";
 import Skeleton from "@/app/ui/skeleton";
 import { useConsents } from "@/hooks/consents/useConsents";
-import { consentNeedsRenewal } from "@/lib/consents";
 import { formatDateTime } from "@/lib/dates";
 import type { Consent, ConsentMethod } from "@/model/consent";
 import type { Patient } from "@/model/patient";
@@ -86,9 +85,7 @@ export default function ConsentSection({ patient }: Props) {
   const active = consents?.find((consent) => consent.status === "active");
   const revoked = consents?.filter((consent) => consent.status === "revoked") ?? [];
   const isArchived = Boolean(patient.archivedAt);
-  const needsRenewal = active
-    ? consentNeedsRenewal(active, patient.birthDate)
-    : false;
+  const needsRenewal = active?.needsRenewal ?? false;
   const canRenew = needsRenewal && !isArchived;
   const canAct = consents && (active || !isArchived);
   const mainButtonRef = useRef<HTMLButtonElement>(null);
@@ -208,7 +205,7 @@ export default function ConsentSection({ patient }: Props) {
           patient={patient}
           open={openDialog === "grant"}
           onClose={closeDialog}
-          replacesConsentId={needsRenewal ? active?.id : undefined}
+          isRenewal={needsRenewal}
         />
       )}
 

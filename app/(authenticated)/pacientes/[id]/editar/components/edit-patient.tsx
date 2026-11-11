@@ -7,6 +7,7 @@ import { usePatient } from "@/hooks/patients/usePatient";
 import { useUpdatePatient } from "@/hooks/patients/useUpdatePatient";
 import { applyFieldErrors } from "@/lib/form-errors";
 import type { Patient, PatientData } from "@/model/patient";
+import { hasErrorCode } from "@/shared/ApiError";
 import { useRouter } from "next/navigation";
 import { FaArchive } from "react-icons/fa";
 import BackLink from "../../../components/back-link";
@@ -21,14 +22,27 @@ interface Props {
   id: string;
 }
 
+const BIRTH_DATE_AFTER_CONSENT_MESSAGE =
+  "Há uma autorização de uso de imagem coletada antes desta data. Confira a data de nascimento.";
+
 function EditPatientForm({ patient }: { patient: Patient }) {
   const router = useRouter();
   const detailHref = `/pacientes/${patient.id}`;
   const form = usePatientForm(patientToFormValues(patient));
   const { isDirty } = form.formState;
   const { updatePatient, isPending } = useUpdatePatient(patient.id, {
-    onValidationError: (err) =>
-      applyFieldErrors(err, form.setError, patientFormFields),
+    onValidationError: (err) => {
+      if (hasErrorCode(err, "PATIENT_BIRTH_DATE_AFTER_CONSENT")) {
+        form.setError(
+          "birthDate",
+          { type: "server", message: BIRTH_DATE_AFTER_CONSENT_MESSAGE },
+          { shouldFocus: true },
+        );
+        return true;
+      }
+
+      return applyFieldErrors(err, form.setError, patientFormFields);
+    },
   });
 
   function onSubmit(data: PatientData) {

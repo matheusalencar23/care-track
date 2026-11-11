@@ -169,6 +169,47 @@ describe("ConsentSection", () => {
     expect(grantConsent).not.toHaveBeenCalled();
   });
 
+  it("recusa data de coleta anterior ao nascimento", async () => {
+    renderWithQueryClient(<ConsentSection patient={patient()} />);
+    const dialog = await openGrantDialog();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Verbal" }));
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Responsável legal" }));
+    await userEvent.type(within(dialog).getByLabelText("Nome do responsável legal"), "Rita Lima");
+    const collectedAt = within(dialog).getByLabelText("Data e hora da coleta");
+    await userEvent.clear(collectedAt);
+    await userEvent.type(collectedAt, "1949-12-31T10:00");
+    await submit(dialog);
+
+    expect(
+      await within(dialog).findByText(
+        "A data da coleta não pode ser anterior ao nascimento do paciente (15/03/1950).",
+      ),
+    ).toBeVisible();
+    expect(grantConsent).not.toHaveBeenCalled();
+  });
+
+  it("leva ao campo a recusa da API de coleta anterior ao nascimento", async () => {
+    vi.mocked(grantConsent).mockRejectedValue(
+      new ApiError("A data da coleta não pode ser anterior ao nascimento.", {
+        statusCode: 422,
+        code: "CONSENT_COLLECTED_BEFORE_BIRTH",
+        errors: [{ location: "body", path: "collectedAt", message: "Data anterior ao nascimento." }],
+      }),
+    );
+    renderWithQueryClient(<ConsentSection patient={patient()} />);
+    const dialog = await openGrantDialog();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Verbal" }));
+    await userEvent.click(within(dialog).getByRole("radio", { name: "O próprio paciente" }));
+    await submit(dialog);
+
+    const collectedAt = within(dialog).getByLabelText("Data e hora da coleta");
+    await waitFor(() => expect(collectedAt).toHaveAttribute("aria-invalid", "true"));
+    expect(collectedAt).toHaveAccessibleDescription(/anterior ao nascimento do paciente/);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it("paciente menor: já seleciona o responsável legal e desativa o próprio paciente", async () => {
     renderWithQueryClient(<ConsentSection patient={patient({ birthDate: minorBirthDate() })} />);
     const dialog = await openGrantDialog();
@@ -253,7 +294,7 @@ describe("ConsentSection", () => {
     const birthDate = `${new Date().getFullYear() - 20}-01-15`;
     const collectedAt = `${new Date().getFullYear() - 5}-01-15T12:00:00.000Z`;
     const fromRepresentative = () =>
-      consent({ grantor: "legal_representative", representativeName: "Rita Lima", collectedAt });
+      consent({ grantor: "legal_representative", representativeName: "Rita Lima", collectedAt, needsRenewal: true });
 
     async function openRenewal() {
       await userEvent.click(await screen.findByRole("button", { name: "Renovar autorização" }));
@@ -270,9 +311,8 @@ describe("ConsentSection", () => {
       expect(screen.getByRole("button", { name: "Revogar" })).toBeVisible();
     });
 
-    it("renova revogando a anterior antes de registrar a nova", async () => {
+    it("renova com uma só requisição, sem revogar antes", async () => {
       vi.mocked(listConsents).mockResolvedValue([fromRepresentative()]);
-      vi.mocked(revokeConsent).mockResolvedValue(fromRepresentative());
       renderWithQueryClient(<ConsentSection patient={patient({ birthDate })} />);
       const dialog = await openRenewal();
 
@@ -281,13 +321,20 @@ describe("ConsentSection", () => {
       await userEvent.click(within(dialog).getByRole("button", { name: "Renovar" }));
 
       await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Autorização renovada."));
-      expect(revokeConsent).toHaveBeenCalledWith(patientId, {
-        consentId: "c1",
-        reason: "Renovação: o paciente completou 18 anos.",
+      expect(grantConsent).toHaveBeenCalledWith(patientId, {
+        type: "image_capture",
+        method: "written",
+        grantor: "patient",
       });
-      expect(vi.mocked(revokeConsent).mock.invocationCallOrder[0]).toBeLessThan(
-        vi.mocked(grantConsent).mock.invocationCallOrder[0],
-      );
+      expect(revokeConsent).not.toHaveBeenCalled();
+    });
+
+    it("usa o needsRenewal da API, sem repetir a regra de idade", async () => {
+      vi.mocked(listConsents).mockResolvedValue([{ ...fromRepresentative(), needsRenewal: false }]);
+      renderWithQueryClient(<ConsentSection patient={patient({ birthDate })} />);
+
+      expect(await screen.findByText("Autorizado")).toBeVisible();
+      expect(screen.queryByText("Renovação necessária")).not.toBeInTheDocument();
     });
 
     it("não aceita coleta de quando o paciente ainda era menor", async () => {
@@ -307,23 +354,20 @@ describe("ConsentSection", () => {
       expect(revokeConsent).not.toHaveBeenCalled();
     });
 
-    it("se registrar a nova falhar, a anterior fica revogada e o formulário continua aberto", async () => {
+    it("se a renovação falhar, a anterior continua e o formulário fica aberto", async () => {
       vi.mocked(listConsents).mockResolvedValue([fromRepresentative()]);
-      vi.mocked(revokeConsent).mockResolvedValue(fromRepresentative());
       vi.mocked(grantConsent).mockRejectedValue(new ApiError("Erro.", { statusCode: 500 }));
       renderWithQueryClient(<ConsentSection patient={patient({ birthDate })} />);
       const dialog = await openRenewal();
       await userEvent.click(within(dialog).getByRole("radio", { name: "Verbal" }));
       await userEvent.click(within(dialog).getByRole("radio", { name: "O próprio paciente" }));
-      vi.mocked(listConsents).mockResolvedValue([
-        { ...fromRepresentative(), status: "revoked", revokedAt: "2026-11-09T12:00:00.000Z" },
-      ]);
 
       await userEvent.click(within(dialog).getByRole("button", { name: "Renovar" }));
 
-      expect(await screen.findByText("Sem autorização")).toBeVisible();
-      expect(toast.error).toHaveBeenCalled();
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      expect(screen.getByText("Renovação necessária")).toBeVisible();
       expect(screen.getByRole("dialog", { name: "Renovar autorização de uso de imagem" })).toBeVisible();
+      expect(revokeConsent).not.toHaveBeenCalled();
     });
 
     it("arquivado: só permite revogar", async () => {

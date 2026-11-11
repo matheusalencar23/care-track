@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Consent } from "@/model/consent";
-import { consentNeedsRenewal, consentPagePath, hasValidImageConsent, imageConsentStatus } from "./consents";
-
-const birthDate = "2008-11-09";
-const beforeAdulthood = new Date("2026-11-08T12:00:00.000Z");
-const afterAdulthood = new Date("2026-11-09T12:00:00.000Z");
+import { consentPagePath, hasValidImageConsent, imageConsentStatus } from "./consents";
 
 function consent(overrides: Partial<Consent> = {}): Consent {
   return {
@@ -24,24 +20,6 @@ function consent(overrides: Partial<Consent> = {}): Consent {
   };
 }
 
-describe("consentNeedsRenewal", () => {
-  it("pede renovação quando o menor completa 18 anos", () => {
-    expect(consentNeedsRenewal(consent(), birthDate, beforeAdulthood)).toBe(false);
-    expect(consentNeedsRenewal(consent(), birthDate, afterAdulthood)).toBe(true);
-  });
-
-  it("não pede para responsável legal de quem já era adulto na coleta", () => {
-    const collectedAt = "2026-11-09T00:00:00.000Z";
-
-    expect(consentNeedsRenewal(consent({ collectedAt }), birthDate, afterAdulthood)).toBe(false);
-  });
-
-  it("não pede para autorização do próprio paciente nem para a revogada", () => {
-    expect(consentNeedsRenewal(consent({ grantor: "patient" }), birthDate, afterAdulthood)).toBe(false);
-    expect(consentNeedsRenewal(consent({ status: "revoked" }), birthDate, afterAdulthood)).toBe(false);
-  });
-});
-
 describe("hasValidImageConsent", () => {
   it("aceita a autorização ativa que não precisa de renovação", () => {
     expect(hasValidImageConsent([consent()])).toBe(true);
@@ -56,10 +34,10 @@ describe("hasValidImageConsent", () => {
 
 describe("imageConsentStatus", () => {
   it("indica sem autorização, autorizado e renovação necessária", () => {
-    expect(imageConsentStatus([], birthDate)).toBe("none");
-    expect(imageConsentStatus([consent({ status: "revoked" })], birthDate)).toBe("none");
-    expect(imageConsentStatus([consent({ grantor: "patient", representativeName: null })], birthDate)).toBe("active");
-    expect(imageConsentStatus([consent({ needsRenewal: true })], birthDate)).toBe("renewal");
+    expect(imageConsentStatus([])).toBe("none");
+    expect(imageConsentStatus([consent({ status: "revoked" })])).toBe("none");
+    expect(imageConsentStatus([consent({ grantor: "patient", representativeName: null })])).toBe("active");
+    expect(imageConsentStatus([consent({ needsRenewal: true })])).toBe("renewal");
   });
 });
 

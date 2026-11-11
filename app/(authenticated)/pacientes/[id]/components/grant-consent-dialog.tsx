@@ -5,7 +5,12 @@ import Input from "@/app/ui/input";
 import Modal from "@/app/ui/modal";
 import RadioGroup from "@/app/ui/radio-group";
 import { useGrantConsent } from "@/hooks/consents/useGrantConsent";
-import { isMinorAt, toLocalDateTimeInput } from "@/lib/dates";
+import {
+  formatDate,
+  isBeforeBirth,
+  isMinorAt,
+  toLocalDateTimeInput,
+} from "@/lib/dates";
 import { applyFieldErrors } from "@/lib/form-errors";
 import {
   CONSENT_GRANTORS,
@@ -23,7 +28,7 @@ interface Props {
   patient: Patient;
   open: boolean;
   onClose: () => void;
-  replacesConsentId?: string;
+  isRenewal?: boolean;
 }
 
 const RENEWAL_DATE_MESSAGE =
@@ -31,6 +36,10 @@ const RENEWAL_DATE_MESSAGE =
 
 const MINOR_MESSAGE =
   "O paciente era menor de idade na data da coleta: a autorização deve ser dada pelo responsável legal.";
+
+function beforeBirthMessage(birthDate: string) {
+  return `A data da coleta não pode ser anterior ao nascimento do paciente (${formatDate(birthDate)}).`;
+}
 
 function parseCollectedAt(value: string) {
   const date = new Date(value);
@@ -77,6 +86,15 @@ function createSchema(birthDate: string, isRenewal: boolean) {
 
       const collectedAt = parseCollectedAt(values.collectedAt);
 
+      if (collectedAt && isBeforeBirth(birthDate, collectedAt)) {
+        context.addIssue({
+          code: "custom",
+          path: ["collectedAt"],
+          message: beforeBirthMessage(birthDate),
+        });
+        return;
+      }
+
       if (isRenewal && collectedAt && isMinorAt(birthDate, collectedAt)) {
         context.addIssue({
           code: "custom",
@@ -112,9 +130,8 @@ export default function GrantConsentDialog({
   patient,
   open,
   onClose,
-  replacesConsentId,
+  isRenewal = false,
 }: Props) {
-  const isRenewal = Boolean(replacesConsentId);
   const [startedAsRenewal] = useState(isRenewal);
   const formId = useId();
   const [initialCollectedAt] = useState(() => toLocalDateTimeInput());
@@ -138,10 +155,19 @@ export default function GrantConsentDialog({
 
   const { grantConsent, isPending } = useGrantConsent(patient.id, {
     onDone: onClose,
-    replacesConsentId,
+    isRenewal: startedAsRenewal,
     onFormError: (err) => {
       if (hasErrorCode(err, "CONSENT_REQUIRES_REPRESENTATIVE")) {
         setError("grantor", { type: "server", message: MINOR_MESSAGE });
+        return true;
+      }
+
+      if (hasErrorCode(err, "CONSENT_COLLECTED_BEFORE_BIRTH")) {
+        setError(
+          "collectedAt",
+          { type: "server", message: beforeBirthMessage(patient.birthDate) },
+          { shouldFocus: true },
+        );
         return true;
       }
 
@@ -284,6 +310,7 @@ export default function GrantConsentDialog({
           label="Data e hora da coleta"
           type="datetime-local"
           className="scheme-dark"
+          min={`${patient.birthDate.slice(0, 10)}T00:00`}
           max={initialCollectedAt}
           hint="Se a coleta foi agora, deixe como está."
           error={errors.collectedAt?.message}

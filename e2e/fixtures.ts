@@ -688,7 +688,18 @@ export class FakeApi {
       });
     }
 
-    if (this.consents.some((consent) => consent.patientId === patientId && consent.status === "active")) {
+    const active = this.consents.find((consent) => consent.patientId === patientId && consent.status === "active");
+
+    if (active?.needsRenewal) {
+      const revoked: FakeConsent = {
+        ...active,
+        status: "revoked",
+        needsRenewal: false,
+        revokedAt: new Date().toISOString(),
+        revocationReason: "Renovação: o paciente completou 18 anos.",
+      };
+      this.consents = this.consents.map((consent) => (consent.id === active.id ? revoked : consent));
+    } else if (active) {
       return route.fulfill({
         status: 409,
         json: { code: "CONSENT_ALREADY_ACTIVE", message: "Já existe um consentimento ativo deste tipo para o paciente." },

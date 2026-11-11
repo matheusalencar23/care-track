@@ -51,6 +51,12 @@ export function isMinorAt(birthDate: string, date: Date) {
   return date.getTime() < adulthood;
 }
 
+export function isBeforeBirth(birthDate: string, date: Date) {
+  const { year, month, day } = dateParts(birthDate);
+
+  return date.getTime() < Date.UTC(year, month - 1, day);
+}
+
 export function toLocalDateTimeInput(date = new Date()) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");

@@ -1,18 +1,4 @@
-import { isMinorAt } from "@/lib/dates";
 import type { Consent } from "@/model/consent";
-
-export function consentNeedsRenewal(
-  consent: Consent,
-  birthDate: string,
-  now = new Date(),
-) {
-  return (
-    consent.status === "active" &&
-    consent.grantor === "legal_representative" &&
-    isMinorAt(birthDate, new Date(consent.collectedAt)) &&
-    !isMinorAt(birthDate, now)
-  );
-}
 
 export function hasValidImageConsent(consents: Consent[]) {
   return consents.some(
@@ -25,10 +11,7 @@ export function hasValidImageConsent(consents: Consent[]) {
 
 export type ImageConsentStatus = "active" | "renewal" | "none";
 
-export function imageConsentStatus(
-  consents: Consent[],
-  birthDate: string,
-): ImageConsentStatus {
+export function imageConsentStatus(consents: Consent[]): ImageConsentStatus {
   const active = consents.find(
     (consent) => consent.type === "image_capture" && consent.status === "active",
   );
@@ -37,9 +20,7 @@ export function imageConsentStatus(
     return "none";
   }
 
-  return active.needsRenewal || consentNeedsRenewal(active, birthDate)
-    ? "renewal"
-    : "active";
+  return active.needsRenewal ? "renewal" : "active";
 }
 
 export function consentPagePath(patientId: string) {

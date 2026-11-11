@@ -128,6 +128,7 @@ test.describe("paciente que completou 18 anos", () => {
           representativeName: "Rita Campos",
           collectedAt: `${year - 5}-01-15T12:00:00.000Z`,
           status: "active",
+          needsRenewal: true,
           revokedAt: null,
           revocationReason: null,
           createdAt: `${year - 5}-01-15T12:00:00.000Z`,
@@ -152,7 +153,10 @@ test.describe("paciente que completou 18 anos", () => {
     await expect(section.getByText("Autorizado")).toBeVisible();
     await expect(section.getByRole("button", { name: "Revogar" })).toBeFocused();
     await expect(section.getByText("Autorizações revogadas (1)")).toBeVisible();
-    expect(api.revocations).toEqual([{ reason: "Renovação: o paciente completou 18 anos." }]);
+    await section.getByText("Autorizações revogadas (1)").click();
+    await expect(section.getByText("Motivo: Renovação: o paciente completou 18 anos.")).toBeVisible();
+    expect(api.revocations).toEqual([]);
+    expect(api.grantedConsents).toHaveLength(1);
     expect(cspViolations).toEqual([]);
   });
 

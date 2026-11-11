@@ -4,6 +4,7 @@ import {
   formatAge,
   formatDate,
   formatDateTime,
+  isBeforeBirth,
   isMinorAt,
   todayIso,
   toLocalDateTimeInput,
@@ -52,6 +53,13 @@ describe("isMinorAt", () => {
   it("usa o mesmo corte da API: meia-noite UTC do aniversário de 18 anos", () => {
     expect(isMinorAt("2008-11-09", new Date("2026-11-08T23:59:59.000Z"))).toBe(true);
     expect(isMinorAt("2008-11-09", new Date("2026-11-09T00:00:00.000Z"))).toBe(false);
+  });
+});
+
+describe("isBeforeBirth", () => {
+  it("usa o mesmo corte da API: meia-noite UTC do dia do nascimento", () => {
+    expect(isBeforeBirth("2008-11-09", new Date("2008-11-08T23:59:59.000Z"))).toBe(true);
+    expect(isBeforeBirth("2008-11-09", new Date("2008-11-09T00:00:00.000Z"))).toBe(false);
   });
 });
 

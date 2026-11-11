@@ -23,7 +23,7 @@ const statusBadges: Record<
 export default function ImageConsentLink({ patient }: { patient: Patient }) {
   const { data: consents } = useConsents(patient.id);
   const status = consents
-    ? statusBadges[imageConsentStatus(consents, patient.birthDate)]
+    ? statusBadges[imageConsentStatus(consents)]
     : null;
 
   return (
