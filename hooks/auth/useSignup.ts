@@ -3,11 +3,11 @@
 import { notifyError } from "@/lib/notify-error";
 import { signup } from "@/services/auth.service";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { toast } from "react-toastify";
 
 export function useSignup() {
-  const router = useRouter();
+  const router = useAppRouter();
 
   const mutation = useMutation({
     mutationFn: signup,

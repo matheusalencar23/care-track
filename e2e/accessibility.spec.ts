@@ -190,6 +190,27 @@ test.describe("área logada", () => {
     await expectNoViolations(page);
   });
 
+  test("o menu do usuário aberto e a barra de progresso não têm violações", async ({ page }) => {
+    await page.goto("/pacientes");
+    await expect(page.getByRole("heading", { level: 1, name: "Pacientes" })).toBeVisible();
+    await page.getByRole("button", { name: /^Menu do usuário/ }).click();
+    await expect(page.getByRole("link", { name: "Termos de Uso (abre em outra aba)" })).toBeVisible();
+    await expectNoViolations(page);
+
+    await page.route(
+      (url) => url.pathname === "/perfil",
+      async (route) => {
+        if (route.request().headers()["rsc"]) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+        await route.fallback();
+      },
+    );
+    await page.getByRole("link", { name: "Meu perfil" }).click();
+    await expect(page.getByRole("progressbar", { name: "Carregando a página" })).toBeVisible();
+    await expectNoViolations(page);
+  });
+
   test("o perfil não tem violações", async ({ page }) => {
     await page.goto("/perfil");
     await expect(page.getByRole("heading").first()).toBeVisible();

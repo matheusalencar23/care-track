@@ -4,11 +4,11 @@ import { notifyError } from "@/lib/notify-error";
 import { resetPassword } from "@/services/auth.service";
 import { isInvalidTokenError } from "@/shared/ApiError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { toast } from "react-toastify";
 
 export function useResetPassword() {
-  const router = useRouter();
+  const router = useAppRouter();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({

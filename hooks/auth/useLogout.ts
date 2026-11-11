@@ -8,10 +8,10 @@ import {
 } from "@/lib/session";
 import { logout } from "@/services/auth.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 
 export function useLogout() {
-  const router = useRouter();
+  const router = useAppRouter();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({

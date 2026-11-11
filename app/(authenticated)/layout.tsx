@@ -2,10 +2,9 @@
 
 import { useCurrentUser } from "@/hooks/auth/useCurrentUser";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { ApiError } from "@/shared/ApiError";
 import RequestId from "@/app/ui/request-id";
-import LegalLinks from "@/app/ui/legal-links";
 import AppHeader from "./components/app-header";
 import SessionTimeout from "./components/session-timeout";
 
@@ -15,7 +14,7 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }>) {
   const { data: user, error, refetch } = useCurrentUser();
-  const router = useRouter();
+  const router = useAppRouter();
 
   const isUnauthorized = error instanceof ApiError && error.statusCode === 401;
 
@@ -59,10 +58,6 @@ export default function AuthenticatedLayout({
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 text-white sm:px-6 sm:py-8">
         {children}
       </main>
-
-      <footer className="px-4 pb-6">
-        <LegalLinks />
-      </footer>
     </div>
   );
 }

@@ -7,12 +7,17 @@ import LegalLinks from "../legal-links";
 interface Props {
   children: React.ReactNode;
   title: string;
+  wide?: boolean;
 }
 
-export default function ExternalLayout({ title, children }: Props) {
+export default function ExternalLayout({
+  title,
+  children,
+  wide = false,
+}: Props) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 py-10">
-      <Card>
+      <Card wide={wide}>
         <div className="mb-6 flex flex-col items-center">
           <Image src={logo} alt="Logo" className="w-50 mb-2" loading="eager" />
 

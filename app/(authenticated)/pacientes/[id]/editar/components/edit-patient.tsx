@@ -8,7 +8,7 @@ import { useUpdatePatient } from "@/hooks/patients/useUpdatePatient";
 import { applyFieldErrors } from "@/lib/form-errors";
 import type { Patient, PatientData } from "@/model/patient";
 import { hasErrorCode } from "@/shared/ApiError";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { FaArchive } from "react-icons/fa";
 import BackLink from "../../../components/back-link";
 import PatientForm, {
@@ -26,7 +26,7 @@ const BIRTH_DATE_AFTER_CONSENT_MESSAGE =
   "Há uma autorização de uso de imagem coletada antes desta data. Confira a data de nascimento.";
 
 function EditPatientForm({ patient }: { patient: Patient }) {
-  const router = useRouter();
+  const router = useAppRouter();
   const detailHref = `/pacientes/${patient.id}`;
   const form = usePatientForm(patientToFormValues(patient));
   const { isDirty } = form.formState;

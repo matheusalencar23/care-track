@@ -9,6 +9,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   FaChevronDown,
+  FaFileAlt,
+  FaShieldAlt,
   FaSignOutAlt,
   FaUserCircle,
   FaUsers,
@@ -18,6 +20,14 @@ import logo from "../../../public/logo.png";
 interface Props {
   user: User;
 }
+
+const legalItems = [
+  { href: "/termos", label: "Termos de Uso", icon: FaFileAlt },
+  { href: "/privacidade", label: "Política de Privacidade", icon: FaShieldAlt },
+];
+
+const menuItemClassName =
+  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100";
 
 const navItems = [{ href: "/pacientes", label: "Pacientes", icon: FaUsers }];
 
@@ -74,12 +84,7 @@ export default function AppHeader({ user }: Props) {
           href="/pacientes"
           className="flex min-w-0 items-center gap-1 sm:gap-1.5"
         >
-          <Image
-            src={logo}
-            alt=""
-            className="w-10 sm:w-12 md:w-15"
-            preload
-          />
+          <Image src={logo} alt="" className="w-10 sm:w-12 md:w-15" preload />
 
           <span className="hidden truncate text-lg font-semibold text-white sm:inline sm:text-xl md:text-2xl">
             Care<span className="text-teal-300">Track</span>
@@ -159,12 +164,30 @@ export default function AppHeader({ user }: Props) {
               <Link
                 href="/perfil"
                 onClick={() => setMenuIsOpen(false)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                className={menuItemClassName}
               >
                 <FaUserCircle aria-hidden className="text-xs" />
                 Meu perfil
               </Link>
+            </div>
 
+            <div className="border-t border-gray-100 p-1">
+              {legalItems.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  onClick={() => setMenuIsOpen(false)}
+                  className={menuItemClassName}
+                >
+                  <Icon aria-hidden className="text-xs" />
+                  {label}
+                  <span className="sr-only"> (abre em outra aba)</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="border-t border-gray-100 p-1">
               <button
                 type="button"
                 onClick={() => confirmLeave() && signout()}

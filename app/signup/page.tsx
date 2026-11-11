@@ -6,7 +6,7 @@ import GuestOnly from "../ui/components/guest-only";
 export default function SignUp() {
   return (
     <GuestOnly>
-      <ExternalLayout title="Faça seu cadastro para usar a plataforma">
+      <ExternalLayout title="Faça seu cadastro para usar a plataforma" wide>
         <RegisterForm />
 
         <p className="mt-4 text-center text-sm text-slate-200">

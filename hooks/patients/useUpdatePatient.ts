@@ -6,7 +6,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { updatePatient } from "@/services/patient.service";
 import { hasErrorCode } from "@/shared/ApiError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { toast } from "react-toastify";
 
 const FIELD_ERROR_CODES = ["VALIDATION_FAILED", "PATIENT_BIRTH_DATE_AFTER_CONSENT"];
@@ -16,7 +16,7 @@ interface Options {
 }
 
 export function useUpdatePatient(id: string, { onValidationError }: Options = {}) {
-  const router = useRouter();
+  const router = useAppRouter();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({

@@ -54,7 +54,11 @@ export default function RegisterForm() {
   }
 
   return (
-    <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
+    <form
+      className="grid gap-5 sm:grid-cols-2 sm:items-start"
+      noValidate
+      onSubmit={handleSubmit(onSubmit)}
+    >
       <Input
         label="Nome"
         autoComplete="name"
@@ -109,35 +113,39 @@ export default function RegisterForm() {
         {...register("password")}
       />
 
-      <Checkbox
-        label={
-          <>
-            Li e aceito os{" "}
-            <Link
-              href="/termos"
-              target="_blank"
-              className="font-semibold text-white underline hover:text-teal-300"
-            >
-              Termos de Uso
-            </Link>{" "}
-            e estou ciente da{" "}
-            <Link
-              href="/privacidade"
-              target="_blank"
-              className="font-semibold text-white underline hover:text-teal-300"
-            >
-              Política de Privacidade
-            </Link>
-            . Os links abrem em outra aba.
-          </>
-        }
-        error={errors.acceptedTerms?.message}
-        {...register("acceptedTerms")}
-      />
+      <div className="sm:col-span-2">
+        <Checkbox
+          label={
+            <>
+              Li e aceito os{" "}
+              <Link
+                href="/termos"
+                target="_blank"
+                className="font-semibold text-white underline hover:text-teal-300"
+              >
+                Termos de Uso
+              </Link>{" "}
+              e estou ciente da{" "}
+              <Link
+                href="/privacidade"
+                target="_blank"
+                className="font-semibold text-white underline hover:text-teal-300"
+              >
+                Política de Privacidade
+              </Link>
+              . Os links abrem em outra aba.
+            </>
+          }
+          error={errors.acceptedTerms?.message}
+          {...register("acceptedTerms")}
+        />
+      </div>
 
-      <Button disabled={isPending}>
-        {isPending ? "Cadastrando..." : "Cadastrar"}
-      </Button>
+      <div className="sm:col-span-2">
+        <Button disabled={isPending}>
+          {isPending ? "Cadastrando..." : "Cadastrar"}
+        </Button>
+      </div>
     </form>
   );
 }

@@ -2,8 +2,9 @@
 
 import { ApiError } from "@/shared/ApiError";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { ToastContainer } from "react-toastify";
+import NavigationProgress from "./ui/navigation-progress";
 
 interface Props {
   children: React.ReactNode;
@@ -35,6 +36,9 @@ export function Providers({ children }: Props) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       {children}
       <ToastContainer />
     </QueryClientProvider>

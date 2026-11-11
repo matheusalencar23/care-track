@@ -5,7 +5,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { createPatient } from "@/services/patient.service";
 import { hasErrorCode } from "@/shared/ApiError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { toast } from "react-toastify";
 
 interface Options {
@@ -13,7 +13,7 @@ interface Options {
 }
 
 export function useCreatePatient({ onValidationError }: Options = {}) {
-  const router = useRouter();
+  const router = useAppRouter();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({

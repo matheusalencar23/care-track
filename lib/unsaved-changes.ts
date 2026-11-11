@@ -1,3 +1,5 @@
+import { internalLinkDestination } from "./internal-link";
+
 export const UNSAVED_CHANGES_MESSAGE =
   "Há alterações não salvas nesta página. Se sair, o que foi digitado e os arquivos anexados serão perdidos. Deseja sair mesmo assim?";
 
@@ -21,38 +23,6 @@ export function confirmLeave() {
   return !hasUnsavedChanges() || window.confirm(UNSAVED_CHANGES_MESSAGE);
 }
 
-function isInternalNavigation(event: MouseEvent) {
-  if (
-    event.defaultPrevented ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey ||
-    !(event.target instanceof Element)
-  ) {
-    return false;
-  }
-
-  const anchor = event.target.closest("a[href]");
-
-  if (
-    !(anchor instanceof HTMLAnchorElement) ||
-    anchor.hasAttribute("download") ||
-    (anchor.target && anchor.target !== "_self")
-  ) {
-    return false;
-  }
-
-  const url = new URL(anchor.href, window.location.href);
-
-  return (
-    url.origin === window.location.origin &&
-    (url.pathname !== window.location.pathname ||
-      url.search !== window.location.search)
-  );
-}
-
 function install() {
   const navigation = navigationApi();
 
@@ -62,7 +32,11 @@ function install() {
   }
 
   function onClick(event: MouseEvent) {
-    if (isInternalNavigation(event) && !confirmLeave()) {
+    if (
+      !event.defaultPrevented &&
+      internalLinkDestination(event) &&
+      !confirmLeave()
+    ) {
       event.preventDefault();
       event.stopImmediatePropagation();
     }

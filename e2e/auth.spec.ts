@@ -114,3 +114,43 @@ test.describe("API fora do ar", () => {
     await expect(page.getByRole("button", { name: "Tentar novamente" })).toBeVisible();
   });
 });
+
+test.describe("layout do cadastro", () => {
+  test("usa duas colunas em tela larga, mantendo a ordem de tabulação", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/signup");
+    const name = page.getByLabel("Nome");
+    const email = page.getByLabel("E-mail");
+    const coren = page.getByLabel("COREN");
+    const password = page.getByLabel("Senha");
+
+    const [nameBox, emailBox, corenBox, passwordBox] = await Promise.all(
+      [name, email, coren, password].map(async (field) => (await field.boundingBox())!),
+    );
+    expect(Math.abs(nameBox.y - emailBox.y)).toBeLessThan(2);
+    expect(emailBox.x).toBeGreaterThan(nameBox.x);
+    expect(Math.abs(corenBox.y - passwordBox.y)).toBeLessThan(2);
+    expect(corenBox.y).toBeGreaterThan(nameBox.y);
+
+    await name.focus();
+    await page.keyboard.press("Tab");
+    await expect(email).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(coren).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("UF")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(password).toBeFocused();
+  });
+
+  test("usa uma coluna no celular, sem rolagem horizontal", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto("/signup");
+    const nameBox = (await page.getByLabel("Nome").boundingBox())!;
+    const emailBox = (await page.getByLabel("E-mail").boundingBox())!;
+
+    expect(emailBox.y).toBeGreaterThan(nameBox.y + nameBox.height);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});

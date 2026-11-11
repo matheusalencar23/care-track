@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrentUser } from "@/hooks/auth/useCurrentUser";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { useEffect } from "react";
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
  */
 export default function GuestOnly({ children }: Props) {
   const { data: user } = useCurrentUser();
-  const router = useRouter();
+  const router = useAppRouter();
 
   useEffect(() => {
     if (user) {

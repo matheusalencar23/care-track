@@ -18,7 +18,7 @@ test("os documentos legais são públicos e apontam um para o outro", async ({ p
   ).toBeVisible();
 });
 
-test("o login e a área logada mostram os links dos documentos", async ({ page, api }) => {
+test("o login mostra os links no rodapé e a área logada, no menu do usuário", async ({ page, api }) => {
   await page.goto("/login");
 
   await expect(
@@ -28,10 +28,18 @@ test("o login e a área logada mostram os links dos documentos", async ({ page, 
   api.signedIn = true;
   await page.context().addCookies([{ name: "token", value: "e2e", url: "http://localhost:3100" }]);
   await page.goto("/pacientes");
+  await expect(page.getByRole("heading", { level: 1, name: "Pacientes" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Documentos legais" })).toHaveCount(0);
 
-  await expect(
-    page.getByRole("navigation", { name: "Documentos legais" }).getByRole("link", { name: "Política de Privacidade" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: /^Menu do usuário/ }).click();
+  const [privacyTab] = await Promise.all([
+    page.context().waitForEvent("page"),
+    page.getByRole("link", { name: "Política de Privacidade (abre em outra aba)" }).click(),
+  ]);
+
+  await expect(privacyTab).toHaveURL("/privacidade");
+  await expect(page).toHaveURL("/pacientes");
+  await expect(page.getByRole("link", { name: "Termos de Uso (abre em outra aba)" })).toBeHidden();
 });
 
 test("o cadastro exige o aceite e envia a versão dos termos", async ({ page, api }) => {
