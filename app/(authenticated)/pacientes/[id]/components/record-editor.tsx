@@ -105,7 +105,7 @@ export default function RecordEditor({ patient, record, onClose }: Props) {
             Texto atual, salvo por {record.author.name}
             {record.editedAt && ` em ${formatDateTime(record.editedAt)}`}:
           </p>
-          <p className="mt-2 break-words whitespace-pre-wrap text-white">
+          <p className="mt-2 wrap-break-word whitespace-pre-wrap text-white">
             {record.content}
           </p>
           <p className="mt-2 text-slate-300">
