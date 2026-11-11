@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Patient } from "@/model/patient";
 import { RECORD_CONTENT_MAX_LENGTH, type PatientRecord } from "@/model/record";
 import { queryKeys } from "@/lib/query-keys";
+import { hasUnsavedChanges } from "@/lib/unsaved-changes";
 import { createRecord, listRecordVersions, listRecords, updateRecord, voidRecord } from "@/services/record.service";
 import { ApiError } from "@/shared/ApiError";
 import { createTestQueryClient, renderWithQueryClient } from "@/test/render";
@@ -223,6 +224,24 @@ describe("RecordsSection: novo registro", () => {
     expect(toast.success).toHaveBeenCalledWith("Registro salvo.");
     expect(await screen.findByText("Texto novo")).toBeVisible();
     expect(textarea()).toHaveFocus();
+  });
+
+  it("avisa ao sair com texto não salvo e deixa de avisar depois de salvar", async () => {
+    vi.mocked(createRecord).mockResolvedValue(record("novo"));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await screen.findByText("Nenhum registro neste histórico.");
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await userEvent.type(textarea(), "   ");
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await userEvent.type(textarea(), "Curativo");
+    expect(hasUnsavedChanges()).toBe(true);
+
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(textarea()).toHaveValue(""));
+    expect(hasUnsavedChanges()).toBe(false);
   });
 
   it("não envia texto vazio nem só com espaços", async () => {
@@ -573,6 +592,25 @@ describe("RecordsSection: edição", () => {
     expect(screen.getByText("Texto a")).toBeVisible();
     expect(screen.getByRole("button", { name: /^Editar registro de / })).toHaveFocus();
     expect(updateRecord).not.toHaveBeenCalled();
+  });
+
+  it("avisa ao sair com a edição alterada, e não só por abrir o editor", async () => {
+    const { unmount } = renderWithQueryClient(<RecordsSection patient={patient} />);
+    await openEditor();
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await userEvent.type(editField(), " mudado");
+    expect(hasUnsavedChanges()).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await openEditor();
+    await userEvent.type(screen.getByRole("textbox", { name: "Motivo da edição" }), "Correção");
+    expect(hasUnsavedChanges()).toBe(true);
+
+    unmount();
+    expect(hasUnsavedChanges()).toBe(false);
   });
 
   it("permite uma edição por vez", async () => {

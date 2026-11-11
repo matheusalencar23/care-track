@@ -5,6 +5,7 @@ import Textarea from "@/app/ui/textarea";
 import { useAttachmentUploads } from "@/hooks/attachments/useAttachmentUploads";
 import { useImageConsent } from "@/hooks/consents/useImageConsent";
 import { useCreateRecord } from "@/hooks/records/useCreateRecord";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { applyFieldErrors } from "@/lib/form-errors";
 import { recordContentHint, recordOptionalContentSchema } from "@/lib/records";
 import type { Patient } from "@/model/patient";
@@ -68,6 +69,9 @@ export default function NewRecordForm({ patient, onSaved }: Props) {
 
   const content = useWatch({ control, name: "content" });
   const isArchived = Boolean(patient.archivedAt);
+  useUnsavedChangesWarning(
+    content.trim() !== "" || uploads.uploads.length > 0,
+  );
   const visibleFormError = uploads.hasProblems ? formError : null;
 
   if (isArchived && !content && uploads.uploads.length === 0) {

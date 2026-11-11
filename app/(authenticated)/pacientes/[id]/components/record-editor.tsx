@@ -4,6 +4,7 @@ import Button from "@/app/ui/button";
 import Input from "@/app/ui/input";
 import Textarea from "@/app/ui/textarea";
 import { useUpdateRecord } from "@/hooks/records/useUpdateRecord";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { formatDateTime } from "@/lib/dates";
 import { applyFieldErrors } from "@/lib/form-errors";
 import { recordContentHint, recordContentSchema } from "@/lib/records";
@@ -65,6 +66,10 @@ export default function RecordEditor({ patient, record, onClose }: Props) {
   }, [setFocus]);
 
   const content = useWatch({ control, name: "content" });
+  const reason = useWatch({ control, name: "reason" });
+  useUnsavedChangesWarning(
+    content !== (record.content ?? "") || reason.trim() !== "",
+  );
   const isArchived = Boolean(patient.archivedAt);
   const changedElsewhere = hasConflict && record.version !== startVersion;
 
