@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Patient } from "@/model/patient";
 import { getPatient, updatePatient } from "@/services/patient.service";
+import { hasUnsavedChanges } from "@/lib/unsaved-changes";
 import { ApiError } from "@/shared/ApiError";
 import { renderWithQueryClient } from "@/test/render";
 import EditPatient from "./edit-patient";
@@ -135,6 +136,20 @@ describe("EditPatient", () => {
     expect(birthDate).toHaveFocus();
     expect(toast.error).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("só avisa ao sair enquanto os dados estão diferentes dos salvos", async () => {
+    renderWithQueryClient(<EditPatient id={id} />);
+    const name = await screen.findByLabelText("Nome completo");
+    expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await userEvent.type(name, " Silva");
+    expect(hasUnsavedChanges()).toBe(true);
+
+    await userEvent.clear(name);
+    await userEvent.type(name, "Maria das Dores");
+    expect(hasUnsavedChanges()).toBe(false);
   });
 
   it("mostra paciente não encontrado", async () => {

@@ -3,7 +3,7 @@ import { expect, fakePatient, fakeRecord, test } from "./fixtures";
 
 const patientId = "0b6f1c2a-1111-4000-8000-000000000001";
 const patientPath = `/pacientes/${patientId}`;
-const leaveMessage = /Há um registro com alterações não salvas/;
+const leaveMessage = /Há alterações não salvas nesta página/;
 
 test.use({
   apiOptions: {
@@ -118,4 +118,49 @@ test("pergunta com arquivo enviado e ainda sem registro", async ({ page }) => {
 
   await expect.poll(() => dialogs.length).toBe(1);
   await expect(page).toHaveURL(patientPath);
+});
+
+test("pergunta antes de cancelar o cadastro de paciente preenchido", async ({ page }) => {
+  const dialogs = answerDialogs(page, false, true);
+  await page.goto("/pacientes/novo");
+  const name = page.getByRole("textbox", { name: "Nome completo" });
+  await name.fill("Ana Souza");
+
+  await page.getByRole("link", { name: "Cancelar" }).click();
+  await expect.poll(() => dialogs.length).toBe(1);
+  expect(dialogs[0].message()).toMatch(leaveMessage);
+  await expect(page).toHaveURL("/pacientes/novo");
+  await expect(name).toHaveValue("Ana Souza");
+
+  await page.getByRole("link", { name: "Cancelar" }).click();
+  await expect(page).toHaveURL("/pacientes");
+});
+
+test("na edição do paciente, só pergunta enquanto os dados estão diferentes dos salvos", async ({ page }) => {
+  const dialogs = answerDialogs(page, false);
+  await page.goto(`${patientPath}/editar`);
+  const name = page.getByRole("textbox", { name: "Nome completo" });
+  await expect(name).toHaveValue("José Antônio Pereira");
+
+  await name.fill("José Antônio Pereira Filho");
+  await page.getByRole("link", { name: "Cancelar" }).click();
+  await expect.poll(() => dialogs.length).toBe(1);
+  await expect(page).toHaveURL(`${patientPath}/editar`);
+
+  await name.fill("José Antônio Pereira");
+  await page.getByRole("link", { name: "Cancelar" }).click();
+  await expect(page).toHaveURL(patientPath);
+  expect(dialogs).toHaveLength(1);
+});
+
+test("salvar o cadastro leva ao paciente sem perguntar", async ({ page }) => {
+  const dialogs = answerDialogs(page);
+  await page.goto("/pacientes/novo");
+  await page.getByRole("textbox", { name: "Nome completo" }).fill("Ana Souza");
+  await page.getByLabel("Data de nascimento").fill("1980-05-10");
+
+  await page.getByRole("button", { name: "Cadastrar paciente" }).click();
+
+  await expect(page).toHaveURL(/\/pacientes\/[0-9a-f-]{36}$/);
+  expect(dialogs).toEqual([]);
 });

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Patient } from "@/model/patient";
 import { createPatient } from "@/services/patient.service";
+import { hasUnsavedChanges } from "@/lib/unsaved-changes";
 import { ApiError } from "@/shared/ApiError";
 import { renderWithQueryClient } from "@/test/render";
 import NewPatientForm from "./new-patient-form";
@@ -49,6 +50,17 @@ beforeEach(() => {
 });
 
 describe("NewPatientForm", () => {
+  it("avisa ao sair com o formulário preenchido", async () => {
+    const { unmount } = renderWithQueryClient(<NewPatientForm />);
+    expect(hasUnsavedChanges()).toBe(false);
+
+    await userEvent.type(screen.getByLabelText("Nome completo"), "Ana");
+    expect(hasUnsavedChanges()).toBe(true);
+
+    unmount();
+    expect(hasUnsavedChanges()).toBe(false);
+  });
+
   it("exige nome e data de nascimento", async () => {
     renderWithQueryClient(<NewPatientForm />);
 

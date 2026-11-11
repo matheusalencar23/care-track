@@ -27,7 +27,12 @@ test("edita os dados a partir do detalhe", async ({ page, api, cspViolations }) 
 test("cancelar volta para o paciente sem salvar", async ({ page, api }) => {
   await page.goto(`${josé}/editar`);
   await page.getByLabel("Nome completo").fill("Outro nome");
+  const confirmation = page.waitForEvent("dialog").then(async (dialog) => {
+    await dialog.accept();
+    return dialog.type();
+  });
   await page.getByRole("link", { name: "Cancelar" }).click();
+  expect(await confirmation).toBe("confirm");
 
   await expect(page).toHaveURL(josé);
   await expect(page.getByRole("heading", { level: 1, name: "José Antônio Pereira" })).toBeVisible();

@@ -40,7 +40,12 @@ test("avisa quando o CPF já está cadastrado", async ({ page }) => {
 test("cancelar volta para a lista sem enviar", async ({ page, api }) => {
   await page.goto("/pacientes/novo");
   await page.getByLabel("Nome completo").fill("Rascunho");
+  const confirmation = page.waitForEvent("dialog").then(async (dialog) => {
+    await dialog.accept();
+    return dialog.type();
+  });
   await page.getByRole("link", { name: "Cancelar" }).click();
+  expect(await confirmation).toBe("confirm");
 
   await expect(page).toHaveURL("/pacientes");
   expect(api.createdPatients).toEqual([]);

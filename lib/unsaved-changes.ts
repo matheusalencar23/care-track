@@ -1,5 +1,5 @@
 export const UNSAVED_CHANGES_MESSAGE =
-  "Há um registro com alterações não salvas. Se sair desta página, o texto e os arquivos anexados serão perdidos. Deseja sair mesmo assim?";
+  "Há alterações não salvas nesta página. Se sair, o que foi digitado e os arquivos anexados serão perdidos. Deseja sair mesmo assim?";
 
 interface NavigateEvent extends Event {
   navigationType: string;

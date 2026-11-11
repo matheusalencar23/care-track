@@ -9,6 +9,7 @@ import { todayIso } from "@/lib/dates";
 import { isValidCpf } from "@/lib/masks";
 import type { Patient, PatientData } from "@/model/patient";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { Controller, useForm, type UseFormReturn } from "react-hook-form";
 import z from "zod";
 
@@ -111,8 +112,10 @@ export default function PatientForm({
     register,
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+
+  useUnsavedChangesWarning(isDirty);
 
   return (
     <form
