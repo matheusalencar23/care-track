@@ -1,4 +1,4 @@
-import { expect, fakeAttachment, fakePatient, fakeRecord, test, tinyPdf, type FakeConsent } from "./fixtures";
+import { FAKE_PDF_PASSWORD, expect, fakeAttachment, fakePatient, fakeRecord, test, tinyPdf, type FakeConsent } from "./fixtures";
 
 const patientId = "0b6f1c2a-1111-4000-8000-000000000001";
 const patientPath = `/pacientes/${patientId}`;
@@ -282,5 +282,44 @@ test.describe("sem anexos", () => {
     await expect.poll(() => api.count(`GET /patients/${patientId}/attachments`)).toBe(1);
 
     await expect(page.getByRole("region", { name: "Anexos", exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe("PDF protegido por senha", () => {
+  test.use({ apiOptions: { signedIn: true, patients } });
+
+  test("pede a senha, avisa a senha errada e salva o registro com o PDF", async ({ page, api, cspViolations }) => {
+    await page.goto(patientPath);
+    const history = page.getByRole("region", { name: "Histórico" });
+    await history.locator('input[type="file"]').setInputFiles({
+      name: "laudo-protegido.pdf",
+      mimeType: "application/pdf",
+      buffer: tinyPdf,
+    });
+
+    const password = history.getByLabel("Senha do PDF laudo-protegido.pdf");
+    await expect(password).toBeVisible();
+    await expect(password).toHaveAttribute("type", "password");
+    await expect(password).toHaveAttribute("autocomplete", "off");
+
+    await password.fill("errada");
+    await password.press("Enter");
+    await expect(password).toHaveAccessibleDescription(/A senha do PDF está incorreta\./);
+    await expect(password).toBeFocused();
+    await expect(password).toHaveValue("");
+    expect(api.createdRecords).toEqual([]);
+
+    await password.fill(FAKE_PDF_PASSWORD);
+    await history.getByRole("button", { name: "Enviar com a senha laudo-protegido.pdf" }).click();
+    await expect(history.getByText(/Enviado/)).toBeVisible();
+    await expect(password).toBeHidden();
+
+    await history.getByRole("button", { name: "Salvar registro" }).click();
+    await expect(page.getByText("Registro salvo.")).toBeVisible();
+
+    expect(api.uploadPasswords).toEqual([null, "errada", FAKE_PDF_PASSWORD]);
+    expect(api.passwordBeforeFile).toEqual([true, true]);
+    expect(JSON.stringify(api.createdRecords)).not.toContain(FAKE_PDF_PASSWORD);
+    expect(cspViolations).toEqual([]);
   });
 });

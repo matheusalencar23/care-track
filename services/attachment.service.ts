@@ -15,9 +15,12 @@ function attachmentsPath(patientId: string) {
 export async function uploadAttachment(
   patientId: string,
   file: File,
-  { signal, onProgress }: UploadAttachmentOptions = {},
+  { signal, onProgress, password }: UploadAttachmentOptions = {},
 ): Promise<Attachment> {
   const body = new FormData();
+  if (password) {
+    body.append("password", password);
+  }
   body.append("file", file);
 
   const response = await api.post(attachmentsPath(patientId), body, {

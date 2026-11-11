@@ -121,6 +121,7 @@ export default function NewRecordForm({ patient, onSaved }: Props) {
         onAddFiles={uploads.addFiles}
         onCancel={uploads.cancel}
         onRetry={uploads.retry}
+        onSubmitPassword={uploads.submitPassword}
         onRemove={uploads.remove}
       />
 

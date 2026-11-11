@@ -103,6 +103,23 @@ test.describe("área logada", () => {
     await expectNoViolations(page);
   });
 
+  test("o pedido de senha de PDF protegido, com erro, não tem violações", async ({ page }) => {
+    await page.goto(`/pacientes/${josé}`);
+    const history = page.getByRole("region", { name: "Histórico" });
+    await history.locator('input[type="file"]').setInputFiles({
+      name: "laudo-protegido.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4"),
+    });
+    const password = history.getByLabel("Senha do PDF laudo-protegido.pdf");
+    await expect(password).toBeVisible();
+    await expectNoViolations(page);
+
+    await history.getByRole("button", { name: "Enviar com a senha laudo-protegido.pdf" }).click();
+    await expect(history.getByText("Informe a senha do PDF")).toBeVisible();
+    await expectNoViolations(page);
+  });
+
   test("o visualizador de anexos não tem violações", async ({ page, api }) => {
     const recordId = "0b6f1c2a-2222-4000-8000-000000000002";
     api.consents = [

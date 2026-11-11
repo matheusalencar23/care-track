@@ -48,4 +48,5 @@ export interface AttachmentDownload extends Attachment {
 export interface UploadAttachmentOptions {
   signal?: AbortSignal;
   onProgress?: (fraction: number) => void;
+  password?: string;
 }

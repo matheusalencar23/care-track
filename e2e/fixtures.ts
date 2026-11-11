@@ -125,6 +125,8 @@ function isMedia(contentType: string) {
   return contentType.startsWith("image/") || contentType.startsWith("video/");
 }
 
+export const FAKE_PDF_PASSWORD = "52998224725";
+
 const consentRequired = {
   status: 409,
   json: {
@@ -184,6 +186,8 @@ export class FakeApi {
   readonly updatedPatients: unknown[] = [];
   readonly grantedConsents: unknown[] = [];
   readonly revocations: unknown[] = [];
+  readonly uploadPasswords: (string | null)[] = [];
+  readonly passwordBeforeFile: boolean[] = [];
   consents: FakeConsent[] = [];
   records: FakeRecord[] = [];
   readonly createdRecords: unknown[] = [];
@@ -477,6 +481,32 @@ export class FakeApi {
         status: 409,
         json: { code: "PATIENT_ARCHIVED", message: "Este paciente está arquivado. Reative-o para alterar os dados." },
       });
+    }
+
+    if (fileName.endsWith("protegido.pdf")) {
+      const text = body?.toString("utf8") ?? "";
+      const password = /name="password"\r\n\r\n([^\r\n]*)\r\n/.exec(text)?.[1] ?? null;
+      this.uploadPasswords.push(password);
+
+      if (password === null) {
+        return route.fulfill({
+          status: 422,
+          json: {
+            code: "ATTACHMENT_PDF_PASSWORD_PROTECTED",
+            message: "O PDF está protegido por senha. Informe a senha para enviá-lo.",
+            errors: [],
+          },
+        });
+      }
+
+      this.passwordBeforeFile.push(text.indexOf('name="password"') < text.indexOf('name="file"'));
+
+      if (password !== FAKE_PDF_PASSWORD) {
+        return route.fulfill({
+          status: 422,
+          json: { code: "ATTACHMENT_PDF_PASSWORD_INVALID", message: "A senha do PDF está incorreta.", errors: [] },
+        });
+      }
     }
 
     const attachment = fakeAttachment({

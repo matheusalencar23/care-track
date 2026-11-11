@@ -242,6 +242,70 @@ describe("Novo registro com anexos", () => {
     expect(uploadAttachment).toHaveBeenCalledTimes(2);
   });
 
+  it("pede a senha do PDF protegido, avisa a senha errada e envia com a certa", async () => {
+    const protectedError = () =>
+      new ApiError("O PDF está protegido por senha. Informe a senha para enviá-lo.", {
+        statusCode: 422,
+        code: "ATTACHMENT_PDF_PASSWORD_PROTECTED",
+      });
+    vi.mocked(uploadAttachment)
+      .mockRejectedValueOnce(protectedError())
+      .mockRejectedValueOnce(
+        new ApiError("A senha do PDF está incorreta.", { statusCode: 422, code: "ATTACHMENT_PDF_PASSWORD_INVALID" }),
+      )
+      .mockResolvedValueOnce(attachment("anexo-1", { fileName: "laudo.pdf", contentType: "application/pdf" }));
+    vi.mocked(createRecord).mockResolvedValue(record("r1", []));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await waitFor(() => expect(listConsents).toHaveBeenCalled());
+
+    await userEvent.upload(fileInput(), file("laudo.pdf", "application/pdf"));
+
+    const password = await screen.findByLabelText("Senha do PDF laudo.pdf");
+    expect(password).toHaveAttribute("type", "password");
+    expect(password).not.toHaveFocus();
+    expect(within(uploadList()).getByText(/protegido por senha/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Enviar de novo laudo.pdf" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Enviar com a senha laudo.pdf" }));
+    expect(await screen.findByText("Informe a senha do PDF")).toBeVisible();
+    expect(uploadAttachment).toHaveBeenCalledTimes(1);
+
+    await userEvent.type(screen.getByLabelText("Senha do PDF laudo.pdf"), "errada{Enter}");
+
+    const retried = await screen.findByLabelText("Senha do PDF laudo.pdf");
+    await waitFor(() => expect(retried).toHaveAccessibleDescription(/A senha do PDF está incorreta\./));
+    expect(retried).toHaveFocus();
+    expect(retried).toHaveValue("");
+    expect(vi.mocked(uploadAttachment).mock.calls[1][2]).toMatchObject({ password: "errada" });
+    expect(createRecord).not.toHaveBeenCalled();
+
+    await userEvent.type(retried, "52998224725");
+    await userEvent.click(screen.getByRole("button", { name: "Enviar com a senha laudo.pdf" }));
+
+    expect(await within(uploadList()).findByText(/Enviado/)).toBeVisible();
+    expect(vi.mocked(uploadAttachment).mock.calls[2][2]).toMatchObject({ password: "52998224725" });
+    expect(vi.mocked(uploadAttachment).mock.calls[0][2]?.password).toBeUndefined();
+    expect(screen.queryByLabelText("Senha do PDF laudo.pdf")).not.toBeInTheDocument();
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
+  it("não reaproveita a senha quando o envio com ela falha por outro motivo", async () => {
+    vi.mocked(uploadAttachment)
+      .mockRejectedValueOnce(
+        new ApiError("O PDF está protegido por senha.", { statusCode: 422, code: "ATTACHMENT_PDF_PASSWORD_PROTECTED" }),
+      )
+      .mockRejectedValueOnce(new ApiError("Erro.", { statusCode: 500, requestId: "req-1" }));
+    renderWithQueryClient(<RecordsSection patient={patient} />);
+    await waitFor(() => expect(listConsents).toHaveBeenCalled());
+
+    await userEvent.upload(fileInput(), file("laudo.pdf", "application/pdf"));
+    await userEvent.type(await screen.findByLabelText("Senha do PDF laudo.pdf"), "segredo{Enter}");
+
+    expect(await within(uploadList()).findByText("Erro.")).toBeVisible();
+    expect(screen.getByLabelText("Senha do PDF laudo.pdf")).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Enviar de novo laudo.pdf" })).not.toBeInTheDocument();
+  });
+
   it("não salva enquanto houver arquivo com erro", async () => {
     vi.mocked(uploadAttachment).mockRejectedValue(new ApiError("Erro.", { statusCode: 500, requestId: "req-up" }));
     renderWithQueryClient(<RecordsSection patient={patient} />);

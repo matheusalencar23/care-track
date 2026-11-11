@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "@/app/ui/button";
+import Input from "@/app/ui/input";
 import RequestId from "@/app/ui/request-id";
 import type { AttachmentUpload } from "@/hooks/attachments/useAttachmentUploads";
 import {
@@ -10,7 +11,14 @@ import {
   formatFileSize,
 } from "@/lib/attachments";
 import { RECORD_ATTACHMENTS_MAX } from "@/model/attachment";
-import { useId, useRef, useState, type DragEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
 import { FaPaperclip } from "react-icons/fa";
 import ConsentPageLink from "./consent-page-link";
 import UploadPreview, { canPreviewUpload } from "./upload-preview";
@@ -23,8 +31,11 @@ interface Props {
   onAddFiles: (files: File[]) => void;
   onCancel: (id: string) => void;
   onRetry: (id: string) => void;
+  onSubmitPassword: (id: string, password: string) => void;
   onRemove: (id: string) => void;
 }
+
+const PASSWORD_MAX_LENGTH = 127;
 
 const actionClassName =
   "cursor-pointer rounded-lg px-2 py-1 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
@@ -63,10 +74,95 @@ function summary(uploads: AttachmentUpload[]) {
   return `${sent} ${problems === 1 ? "1 arquivo não foi enviado." : `${problems} arquivos não foram enviados.`}`;
 }
 
+function PasswordPrompt({
+  upload,
+  onSubmit,
+}: {
+  upload: AttachmentUpload;
+  onSubmit: (password: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { file, passwordError } = upload;
+
+  useEffect(() => {
+    if (passwordError) {
+      inputRef.current?.focus();
+    }
+  }, [passwordError]);
+
+  function submit() {
+    if (!password) {
+      setError("Informe a senha do PDF");
+      inputRef.current?.focus();
+      return;
+    }
+
+    if (/[\r\n]/.test(password) || password.length > PASSWORD_MAX_LENGTH) {
+      setError(
+        `A senha deve ter no máximo ${PASSWORD_MAX_LENGTH} caracteres, sem quebra de linha`,
+      );
+      inputRef.current?.focus();
+      return;
+    }
+
+    setPassword("");
+    onSubmit(password);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submit();
+    }
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      <p className="text-sm text-warning-400">
+        Este PDF está protegido por senha. Informe a senha para enviá-lo: ele
+        será salvo sem a proteção, para abrir no prontuário.
+      </p>
+      <Input
+        ref={inputRef}
+        label="Senha do PDF"
+        aria-label={`Senha do PDF ${file.name}`}
+        type="password"
+        autoComplete="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+        maxLength={PASSWORD_MAX_LENGTH}
+        hint="A senha só é usada neste envio e não é guardada."
+        error={error ?? passwordError}
+        value={password}
+        onChange={(event) => {
+          setPassword(event.target.value);
+          setError(null);
+        }}
+        onKeyDown={handleKeyDown}
+      />
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="secondary"
+          block={false}
+          aria-label={`Enviar com a senha ${file.name}`}
+          onClick={submit}
+        >
+          Enviar com a senha
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function UploadItem({
   upload,
   onCancel,
   onRetry,
+  onSubmitPassword,
   onRemove,
   onPreview,
   patientId,
@@ -75,6 +171,7 @@ function UploadItem({
   upload: AttachmentUpload;
   onCancel: () => void;
   onRetry: () => void;
+  onSubmitPassword: (password: string) => void;
   onRemove: () => void;
   onPreview?: () => void;
 }) {
@@ -113,7 +210,7 @@ function UploadItem({
               Cancelar
             </button>
           )}
-          {status === "failed" && (
+          {status === "failed" && !upload.needsPassword && (
             <button
               type="button"
               onClick={onRetry}
@@ -145,6 +242,10 @@ function UploadItem({
         />
       )}
 
+      {status === "failed" && upload.needsPassword && (
+        <PasswordPrompt upload={upload} onSubmit={onSubmitPassword} />
+      )}
+
       {hasError && upload.error && (
         <div className="mt-2 text-sm text-danger-400">
           <p>
@@ -173,6 +274,7 @@ export default function AttachmentUploader({
   onAddFiles,
   onCancel,
   onRetry,
+  onSubmitPassword,
   onRemove,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -273,6 +375,9 @@ export default function AttachmentUploader({
               upload={upload}
               onCancel={() => onCancel(upload.id)}
               onRetry={() => onRetry(upload.id)}
+              onSubmitPassword={(password) =>
+                onSubmitPassword(upload.id, password)
+              }
               onRemove={() => onRemove(upload.id)}
               onPreview={
                 canPreviewUpload(upload)
