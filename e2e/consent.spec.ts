@@ -1,6 +1,7 @@
 import { expect, fakePatient, test } from "./fixtures";
 
-const adult = "/pacientes/0b6f1c2a-1111-4000-8000-000000000001";
+const adultId = "0b6f1c2a-1111-4000-8000-000000000001";
+const adult = `/pacientes/${adultId}/autorizacoes`;
 const minorId = "0b6f1c2a-5555-4000-8000-000000000001";
 const minorBirthDate = `${new Date().getFullYear() - 10}-01-15`;
 
@@ -21,7 +22,7 @@ test.use({
 
 test("registra e revoga uma autorização, mantendo o histórico", async ({ page, api, cspViolations }) => {
   await page.goto(adult);
-  const section = page.getByRole("region", { name: "Autorização de uso de imagem" });
+  const section = page.getByRole("region", { name: "Situação da autorização" });
   await expect(section.getByText("Sem autorização")).toBeVisible();
 
   const opener = section.getByRole("button", { name: "Registrar autorização" });
@@ -56,8 +57,22 @@ test("registra e revoga uma autorização, mantendo o histórico", async ({ page
   expect(cspViolations).toEqual([]);
 });
 
+test("o detalhe do paciente leva à página de autorização, com a situação no botão", async ({ page, cspViolations }) => {
+  await page.goto(`/pacientes/${adultId}`);
+  const link = page.getByRole("link", { name: /^Autorização de imagem\s*:\s*Sem autorização$/ });
+
+  await link.click();
+
+  await expect(page).toHaveURL(adult);
+  await expect(page.getByRole("heading", { level: 1, name: "Autorização de uso de imagem" })).toBeVisible();
+  await expect(page).toHaveTitle("CareTrack");
+  await page.getByRole("link", { name: "Voltar ao paciente" }).click();
+  await expect(page).toHaveURL(`/pacientes/${adultId}`);
+  expect(cspViolations).toEqual([]);
+});
+
 test("paciente menor exige o responsável legal", async ({ page, api }) => {
-  await page.goto(`/pacientes/${minorId}`);
+  await page.goto(`/pacientes/${minorId}/autorizacoes`);
   await page.getByRole("button", { name: "Registrar autorização" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar autorização de uso de imagem" });
 
@@ -76,7 +91,7 @@ test("paciente menor exige o responsável legal", async ({ page, api }) => {
 });
 
 test("paciente arquivado não recebe nova autorização", async ({ page }) => {
-  await page.goto("/pacientes/0b6f1c2a-1111-4000-8000-000000000003");
+  await page.goto("/pacientes/0b6f1c2a-1111-4000-8000-000000000003/autorizacoes");
 
   await expect(page.getByText(/Paciente arquivado não recebe novas autorizações/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrar autorização" })).toHaveCount(0);
@@ -84,7 +99,7 @@ test("paciente arquivado não recebe nova autorização", async ({ page }) => {
 
 test("o formulário cabe e rola em tela de celular", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
-  await page.goto(`/pacientes/${minorId}`);
+  await page.goto(`/pacientes/${minorId}/autorizacoes`);
   await page.getByRole("button", { name: "Registrar autorização" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar autorização de uso de imagem" });
 
@@ -122,8 +137,8 @@ test.describe("paciente que completou 18 anos", () => {
   });
 
   test("renova a autorização dada pelo responsável legal", async ({ page, api, cspViolations }) => {
-    await page.goto(`/pacientes/${patientId}`);
-    const section = page.getByRole("region", { name: "Autorização de uso de imagem" });
+    await page.goto(`/pacientes/${patientId}/autorizacoes`);
+    const section = page.getByRole("region", { name: "Situação da autorização" });
     await expect(section.getByText("Renovação necessária")).toBeVisible();
 
     await section.getByRole("button", { name: "Renovar autorização" }).click();
@@ -142,8 +157,8 @@ test.describe("paciente que completou 18 anos", () => {
   });
 
   test("revogar sem renovar não perde o foco", async ({ page }) => {
-    await page.goto(`/pacientes/${patientId}`);
-    const section = page.getByRole("region", { name: "Autorização de uso de imagem" });
+    await page.goto(`/pacientes/${patientId}/autorizacoes`);
+    const section = page.getByRole("region", { name: "Situação da autorização" });
 
     await section.getByRole("button", { name: "Revogar" }).click();
     await page.getByRole("dialog", { name: "Revogar autorização?" }).getByRole("button", { name: "Revogar" }).click();

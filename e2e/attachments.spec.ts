@@ -43,7 +43,7 @@ test.describe("com autorização de uso de imagem", () => {
     expect(api.createdRecords).toEqual([{ attachmentIds: [api.attachments[0]?.id] }]);
     expect(api.count("GET /patients/" + patientId + "/attachments/" + api.attachments[0]?.id + "/download")).toBe(0);
 
-    await history.getByRole("list", { name: "Anexos" }).getByRole("button", { name: /ferida\.png/ }).click();
+    await history.getByRole("list", { name: "Anexos", exact: true }).getByRole("button", { name: /ferida\.png/ }).click();
     const viewer = page.getByRole("dialog", { name: "Anexo" });
     const image = viewer.getByRole("img", { name: "Imagem: ferida.png" });
     await expect(image).toBeVisible();
@@ -105,7 +105,7 @@ test.describe("sem autorização de uso de imagem", () => {
   test("explica no visualizador que a foto depende de autorização", async ({ page, api }) => {
     await page.goto(patientPath);
 
-    await page.getByRole("list", { name: "Anexos" }).getByRole("button", { name: /lesao\.jpg/ }).click();
+    await page.getByRole("list", { name: "Anexos", exact: true }).getByRole("button", { name: /lesao\.jpg/ }).click();
     const viewer = page.getByRole("dialog", { name: "Anexo" });
 
     await expect(viewer.getByText(/depende de uma autorização de uso de imagem ativa/)).toBeVisible();
@@ -152,7 +152,7 @@ test.describe("pré-visualização de PDF", () => {
   test("mostra o PDF salvo pela URL de exibição e baixa por outra", async ({ page, api, cspViolations }) => {
     await page.goto(patientPath);
 
-    await page.getByRole("list", { name: "Anexos" }).getByRole("button", { name: /exame\.pdf/ }).click();
+    await page.getByRole("list", { name: "Anexos", exact: true }).getByRole("button", { name: /exame\.pdf/ }).click();
     const viewer = page.getByRole("dialog", { name: "Anexo" });
 
     await expect(viewer.getByTitle("Documento: exame.pdf")).toHaveAttribute(
@@ -167,5 +167,120 @@ test.describe("pré-visualização de PDF", () => {
 
     expect(api.count(`GET /patients/${patientId}/attachments/${pdfId}/download`)).toBe(2);
     expect(cspViolations).toEqual([]);
+  });
+});
+
+test.describe("carrossel de anexos", () => {
+  const recordId = "0b6f1c2a-6666-4000-8000-000000000301";
+
+  test.use({
+    apiOptions: {
+      signedIn: true,
+      patients,
+      consents: [activeConsent],
+      records: [
+        fakeRecord({
+          id: recordId,
+          patientId,
+          content: "Curativo.",
+          attachments: [
+            fakeAttachment({
+              id: "0b6f1c2a-aaaa-4000-8000-000000000301",
+              patientId,
+              recordId,
+              fileName: "ferida.png",
+              createdAt: "2026-11-02T12:00:00.000Z",
+            }),
+            fakeAttachment({
+              id: "0b6f1c2a-aaaa-4000-8000-000000000302",
+              patientId,
+              recordId,
+              fileName: "exame.pdf",
+              createdAt: "2026-11-01T12:00:00.000Z",
+            }),
+          ],
+        }),
+      ],
+    },
+  });
+
+  test("lista os anexos do paciente entre os dados e o histórico e abre o visualizador", async ({ page, api, cspViolations }) => {
+    await page.goto(patientPath);
+    const carousel = page.getByRole("region", { name: "Anexos", exact: true });
+
+    await expect(carousel).toContainText("2 anexos");
+    expect(api.calls.filter((call) => call.includes("/download") || call.startsWith("STORAGE"))).toEqual([]);
+
+    await carousel.getByRole("button", { name: "Ver anexos" }).click();
+    const viewer = page.getByRole("dialog", { name: /^Anexo \d de 2$/ });
+    await expect(viewer).toHaveAccessibleName("Anexo 1 de 2");
+    await expect(viewer.getByRole("img", { name: "Imagem: ferida.png" })).toBeVisible();
+    await viewer.getByRole("button", { name: "Próximo" }).click();
+    await expect(viewer).toHaveAccessibleName("Anexo 2 de 2");
+    await expect(viewer.getByTitle("Documento: exame.pdf")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+    await expect(carousel.getByRole("button", { name: "Ver anexos" })).toBeFocused();
+
+    const order = await page.getByRole("heading", { level: 2 }).allTextContents();
+    expect(order.slice(0, 3)).toEqual(["Dados cadastrais", "Anexos", "Histórico"]);
+    expect(cspViolations).toEqual([]);
+  });
+});
+
+test.describe("muitos anexos", () => {
+  const recordId = "0b6f1c2a-6666-4000-8000-000000000501";
+
+  test.use({
+    apiOptions: {
+      signedIn: true,
+      patients,
+      records: [
+        fakeRecord({
+          id: recordId,
+          patientId,
+          attachments: Array.from({ length: 25 }, (_, index) =>
+            fakeAttachment({
+              id: `0b6f1c2a-aaaa-4000-8000-${String(500 + index).padStart(12, "0")}`,
+              patientId,
+              recordId,
+              fileName: `exame-${index}.pdf`,
+              createdAt: new Date(Date.UTC(2026, 10, 1, 12, 59 - index)).toISOString(),
+            }),
+          ),
+        }),
+      ],
+    },
+  });
+
+  test("carrega a página seguinte no carrossel e não alarga a página no celular", async ({ page, api }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto(patientPath);
+    const carousel = page.getByRole("region", { name: "Anexos", exact: true });
+    await expect(carousel).toContainText("Mais de 20 anexos");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
+    await carousel.getByRole("button", { name: "Ver anexos" }).click();
+    const viewer = page.getByRole("dialog", { name: /^Anexo \d+ de/ });
+    await expect(viewer).toHaveAccessibleName("Anexo 1 de 20+");
+
+    for (let step = 0; step < 19; step++) {
+      await viewer.getByRole("button", { name: "Próximo" }).click();
+    }
+
+    await expect(viewer).toHaveAccessibleName("Anexo 20 de 25");
+    expect(api.count(`GET /patients/${patientId}/attachments`)).toBe(2);
+  });
+});
+
+test.describe("sem anexos", () => {
+  test.use({ apiOptions: { signedIn: true, patients } });
+
+  test("não mostra o carrossel", async ({ page, api }) => {
+    await page.goto(patientPath);
+    await expect(page.getByRole("region", { name: "Histórico" })).toBeVisible();
+    await expect.poll(() => api.count(`GET /patients/${patientId}/attachments`)).toBe(1);
+
+    await expect(page.getByRole("region", { name: "Anexos", exact: true })).toHaveCount(0);
   });
 });

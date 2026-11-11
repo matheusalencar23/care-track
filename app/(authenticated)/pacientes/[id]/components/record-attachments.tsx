@@ -13,7 +13,7 @@ interface Props {
   attachments: Attachment[];
 }
 
-const kindIcons: Record<AttachmentKind, IconType> = {
+const attachmentKindIcons: Record<AttachmentKind, IconType> = {
   image: FaFileImage,
   video: FaFileVideo,
   pdf: FaFilePdf,
@@ -36,7 +36,7 @@ export default function RecordAttachments({ patientId, attachments }: Props) {
     <>
       <ul aria-label="Anexos" className="mt-3 flex flex-wrap gap-2">
         {attachments.map((attachment, index) => {
-          const Icon = kindIcons[attachmentKind(attachment.contentType)];
+          const Icon = attachmentKindIcons[attachmentKind(attachment.contentType)];
 
           return (
             <li key={attachment.id} className="max-w-full">

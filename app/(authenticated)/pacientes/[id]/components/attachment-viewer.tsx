@@ -9,7 +9,7 @@ import { notifyError } from "@/lib/notify-error";
 import type { Attachment } from "@/model/attachment";
 import { hasErrorCode } from "@/shared/ApiError";
 import { useRef, useState } from "react";
-import { CONSENT_SECTION_ANCHOR } from "./attachment-uploader";
+import ConsentPageLink from "./consent-page-link";
 import FilePreview, { PreviewMessage } from "./file-preview";
 import PreviewDialog from "./preview-dialog";
 
@@ -19,6 +19,7 @@ interface Props {
   index: number;
   open: boolean;
   canViewMedia?: boolean;
+  hasMore?: boolean;
   onIndexChange: (index: number) => void;
   onClose: () => void;
 }
@@ -27,10 +28,9 @@ interface PreviewProps {
   patientId: string;
   attachment: Attachment;
   canViewMedia?: boolean;
-  onClose: () => void;
 }
 
-function ConsentRequired({ onClose }: { onClose: () => void }) {
+function ConsentRequired({ patientId }: { patientId: string }) {
   return (
     <div className="rounded-xl border border-warning-400/30 bg-warning-500/10 p-4">
       <p>
@@ -38,13 +38,9 @@ function ConsentRequired({ onClose }: { onClose: () => void }) {
         imagem ativa. O arquivo continua guardado e volta a abrir quando uma
         autorização for registrada.
       </p>
-      <a
-        href={CONSENT_SECTION_ANCHOR}
-        onClick={onClose}
-        className="mt-2 inline-block underline underline-offset-2 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-      >
-        Ir para a autorização de uso de imagem
-      </a>
+      <ConsentPageLink patientId={patientId} className="mt-2">
+        Registrar a autorização de uso de imagem
+      </ConsentPageLink>
     </div>
   );
 }
@@ -53,7 +49,6 @@ function AttachmentPreview({
   patientId,
   attachment,
   canViewMedia,
-  onClose,
 }: PreviewProps) {
   const kind = attachmentKind(attachment.contentType);
   const blocked =
@@ -73,7 +68,7 @@ function AttachmentPreview({
   const resumeAt = useRef(0);
 
   if (blocked || isConsentRequired) {
-    return <ConsentRequired onClose={onClose} />;
+    return <ConsentRequired patientId={patientId} />;
   }
 
   if (isPending) {
@@ -172,6 +167,7 @@ export default function AttachmentViewer({
   index,
   open,
   canViewMedia,
+  hasMore,
   onIndexChange,
   onClose,
 }: Props) {
@@ -188,8 +184,10 @@ export default function AttachmentViewer({
       title="Anexo"
       fileName={attachment.fileName}
       size={attachment.size}
+      createdAt={attachment.createdAt}
       index={index}
       total={attachments.length}
+      hasMore={hasMore}
       onIndexChange={onIndexChange}
     >
       <AttachmentPreview
@@ -197,7 +195,6 @@ export default function AttachmentViewer({
         patientId={patientId}
         attachment={attachment}
         canViewMedia={canViewMedia}
-        onClose={onClose}
       />
     </PreviewDialog>
   );

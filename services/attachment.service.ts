@@ -3,6 +3,8 @@ import type {
   Attachment,
   AttachmentDisposition,
   AttachmentDownload,
+  AttachmentListParams,
+  AttachmentPage,
   UploadAttachmentOptions,
 } from "@/model/attachment";
 
@@ -40,5 +42,13 @@ export async function getAttachmentDownload(
     `${attachmentsPath(patientId)}/${encodeURIComponent(attachmentId)}/download`,
     disposition === "inline" ? { params: { disposition } } : undefined,
   );
+  return response.data;
+}
+
+export async function listAttachments(
+  patientId: string,
+  params: AttachmentListParams,
+): Promise<AttachmentPage> {
+  const response = await api.get(attachmentsPath(patientId), { params });
   return response.data;
 }

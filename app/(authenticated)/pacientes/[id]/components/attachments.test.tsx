@@ -194,10 +194,11 @@ describe("Novo registro com anexos", () => {
 
     const list = uploadList();
     expect(within(list).getByText(/Registre a autorização e envie de novo/)).toBeVisible();
-    expect(within(list).getByRole("link", { name: "Ir para a autorização de uso de imagem" })).toHaveAttribute(
-      "href",
-      "#patient-consent-title",
-    );
+    const consentLink = within(list).getByRole("link", {
+      name: "Registrar a autorização de uso de imagem (abre em nova aba)",
+    });
+    expect(consentLink).toHaveAttribute("href", `/pacientes/${patientId}/autorizacoes`);
+    expect(consentLink).toHaveAttribute("target", "_blank");
     await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(1));
     expect(vi.mocked(uploadAttachment).mock.calls[0]?.[1].name).toBe("exame.pdf");
   });

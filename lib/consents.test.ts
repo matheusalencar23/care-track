@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Consent } from "@/model/consent";
-import { consentNeedsRenewal, hasValidImageConsent } from "./consents";
+import { consentNeedsRenewal, consentPagePath, hasValidImageConsent, imageConsentStatus } from "./consents";
 
 const birthDate = "2008-11-09";
 const beforeAdulthood = new Date("2026-11-08T12:00:00.000Z");
@@ -51,5 +51,22 @@ describe("hasValidImageConsent", () => {
     expect(hasValidImageConsent([])).toBe(false);
     expect(hasValidImageConsent([consent({ status: "revoked", revokedAt: "2026-01-01T12:00:00.000Z" })])).toBe(false);
     expect(hasValidImageConsent([consent({ needsRenewal: true })])).toBe(false);
+  });
+});
+
+describe("imageConsentStatus", () => {
+  it("indica sem autorização, autorizado e renovação necessária", () => {
+    expect(imageConsentStatus([], birthDate)).toBe("none");
+    expect(imageConsentStatus([consent({ status: "revoked" })], birthDate)).toBe("none");
+    expect(imageConsentStatus([consent({ grantor: "patient", representativeName: null })], birthDate)).toBe("active");
+    expect(imageConsentStatus([consent({ needsRenewal: true })], birthDate)).toBe("renewal");
+  });
+});
+
+describe("consentPagePath", () => {
+  it("usa só o ID opaco do paciente", () => {
+    expect(consentPagePath("0b6f1c2a-1111-4000-8000-000000000001")).toBe(
+      "/pacientes/0b6f1c2a-1111-4000-8000-000000000001/autorizacoes",
+    );
   });
 });

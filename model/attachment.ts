@@ -29,6 +29,17 @@ export interface Attachment {
   createdAt: string;
 }
 
+export interface AttachmentPage {
+  items: Attachment[];
+  nextCursor: string | null;
+}
+
+export interface AttachmentListParams {
+  status: "active" | "voided";
+  cursor?: string;
+  limit: number;
+}
+
 export interface AttachmentDownload extends Attachment {
   downloadUrl: string;
   downloadUrlExpiresAt: string;

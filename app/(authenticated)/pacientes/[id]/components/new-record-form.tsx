@@ -110,6 +110,7 @@ export default function NewRecordForm({ patient, onSaved }: Props) {
       />
 
       <AttachmentUploader
+        patientId={patient.id}
         uploads={uploads.uploads}
         disabled={isArchived || isPending}
         canAttachMedia={canAttachMedia}

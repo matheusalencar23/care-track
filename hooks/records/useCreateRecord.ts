@@ -21,10 +21,17 @@ export function useCreateRecord(
 
   const mutation = useMutation({
     mutationFn: (data: CreateRecordData) => createRecord(patientId, data),
-    onSuccess: () => {
+    onSuccess: (_record, data) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.patients.allRecords(patientId),
       });
+
+      if (data.attachmentIds?.length) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.patients.attachmentList(patientId),
+        });
+      }
+
       toast.success("Registro salvo.");
       onDone?.();
     },

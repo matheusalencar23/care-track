@@ -7,10 +7,11 @@ import { usePatient } from "@/hooks/patients/usePatient";
 import { formatAge, formatDate, formatDateTime } from "@/lib/dates";
 import { formatWithMask, maskCns, maskCpf } from "@/lib/masks";
 import type { Patient } from "@/model/patient";
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { FaChevronDown } from "react-icons/fa";
 import BackLink from "../../components/back-link";
 import PatientLoadError from "../../components/patient-load-error";
-import ConsentSection from "./consent-section";
+import PatientAttachments from "./patient-attachments";
 import PatientActions from "./patient-actions";
 import RecordsSection from "./records-section";
 
@@ -25,7 +26,18 @@ function NotInformed() {
   return <span className="text-slate-300">Não informado</span>;
 }
 
+function startsExpanded() {
+  return (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function" ||
+    window.matchMedia("(min-width: 640px)").matches
+  );
+}
+
 function PatientInfo({ patient }: { patient: Patient }) {
+  const [isExpanded, setIsExpanded] = useState(startsExpanded);
+  const contentId = useId();
+
   const fields: { label: string; value: ReactNode }[] = [
     {
       label: "Data de nascimento",
@@ -70,10 +82,26 @@ function PatientInfo({ patient }: { patient: Patient }) {
   return (
     <section aria-labelledby="patient-data-title" className={cardClassName}>
       <h2 id="patient-data-title" className="text-lg font-semibold">
-        Dados cadastrais
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          aria-controls={contentId}
+          onClick={() => setIsExpanded((value) => !value)}
+          className="-m-2 flex w-[calc(100%+1rem)] cursor-pointer items-center justify-between gap-4 rounded-xl p-2 text-left transition hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          Dados cadastrais
+          <FaChevronDown
+            aria-hidden
+            className={`shrink-0 text-sm text-slate-300 transition-transform motion-reduce:transition-none ${isExpanded ? "rotate-180" : ""}`}
+          />
+        </button>
       </h2>
 
-      <dl className="mt-5 grid gap-5 sm:grid-cols-2">
+      <dl
+        id={contentId}
+        hidden={!isExpanded}
+        className="mt-5 grid gap-5 sm:grid-cols-2"
+      >
         {fields.map(({ label, value }) => (
           <div key={label}>
             <dt className="text-sm text-slate-300">{label}</dt>
@@ -156,7 +184,7 @@ export default function PatientDetail({ id }: Props) {
 
       <PatientInfo patient={patient} />
 
-      <ConsentSection patient={patient} />
+      <PatientAttachments key={`attachments-${patient.id}`} patient={patient} />
 
       <RecordsSection key={patient.id} patient={patient} />
     </div>

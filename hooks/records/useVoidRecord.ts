@@ -32,8 +32,15 @@ export function useVoidRecord(
 
   const mutation = useMutation({
     mutationFn: (data: VoidRecordData) => voidRecord(patientId, data),
-    onSuccess: () => {
+    onSuccess: (record) => {
       invalidateRecords();
+
+      if (record.attachments.length > 0) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.patients.attachmentList(patientId),
+        });
+      }
+
       toast.success("Registro anulado.");
       onDone?.();
     },

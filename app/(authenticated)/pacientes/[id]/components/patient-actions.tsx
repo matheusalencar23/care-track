@@ -7,6 +7,7 @@ import { useSetPatientArchived } from "@/hooks/patients/useSetPatientArchived";
 import type { Patient } from "@/model/patient";
 import { useState } from "react";
 import { FaArchive, FaPen, FaUndo } from "react-icons/fa";
+import ImageConsentLink from "./image-consent-link";
 
 interface Props {
   patient: Patient;
@@ -21,6 +22,8 @@ export default function PatientActions({ patient }: Props) {
 
   return (
     <div className="flex flex-wrap gap-3">
+      <ImageConsentLink patient={patient} />
+
       {!isArchived && (
         <LinkButton
           href={`/pacientes/${patient.id}/editar`}

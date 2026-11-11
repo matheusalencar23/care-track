@@ -22,3 +22,26 @@ export function hasValidImageConsent(consents: Consent[]) {
       !consent.needsRenewal,
   );
 }
+
+export type ImageConsentStatus = "active" | "renewal" | "none";
+
+export function imageConsentStatus(
+  consents: Consent[],
+  birthDate: string,
+): ImageConsentStatus {
+  const active = consents.find(
+    (consent) => consent.type === "image_capture" && consent.status === "active",
+  );
+
+  if (!active) {
+    return "none";
+  }
+
+  return active.needsRenewal || consentNeedsRenewal(active, birthDate)
+    ? "renewal"
+    : "active";
+}
+
+export function consentPagePath(patientId: string) {
+  return `/pacientes/${encodeURIComponent(patientId)}/autorizacoes`;
+}

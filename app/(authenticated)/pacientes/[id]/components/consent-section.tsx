@@ -117,7 +117,7 @@ export default function ConsentSection({ patient }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 id="patient-consent-title" className="text-lg font-semibold">
-            Autorização de uso de imagem
+            Situação da autorização
           </h2>
 
           {consents &&

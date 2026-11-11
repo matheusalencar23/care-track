@@ -349,6 +349,16 @@ export class FakeApi {
       return this.uploadAttachment(route, decodeURIComponent(uploadMatch[1]), request.postDataBuffer());
     }
 
+    const listAttachmentsMatch = /^GET \/patients\/([^/]+)\/attachments$/.exec(call);
+
+    if (listAttachmentsMatch) {
+      return this.listAttachments(
+        route,
+        decodeURIComponent(listAttachmentsMatch[1]),
+        new URL(request.url()).searchParams,
+      );
+    }
+
     const downloadMatch = /^GET \/patients\/([^/]+)\/attachments\/([^/]+)\/download$/.exec(call);
 
     if (downloadMatch) {
@@ -483,6 +493,23 @@ export class FakeApi {
     this.attachments = [...this.attachments, attachment];
 
     return route.fulfill({ status: 201, json: attachment, headers: this.sessionHeaders() });
+  }
+
+  private listAttachments(route: Route, patientId: string, query: URLSearchParams) {
+    const limit = Number(query.get("limit") ?? 20);
+    const cursor = query.get("cursor");
+    const voided = query.get("status") === "voided";
+    const matches = this.records
+      .filter((record) => record.patientId === patientId && Boolean(record.voidedAt) === voided)
+      .flatMap((record) => record.attachments)
+      .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    const start = cursor ? matches.findIndex((item) => item.id === cursor) + 1 : 0;
+    const items = matches.slice(start, start + limit);
+
+    return route.fulfill({
+      json: { items, nextCursor: start + limit < matches.length ? (items.at(-1)?.id ?? null) : null },
+      headers: this.sessionHeaders(),
+    });
   }
 
   private downloadAttachment(route: Route, patientId: string, attachmentId: string, disposition: string) {

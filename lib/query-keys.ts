@@ -18,6 +18,7 @@ export const queryKeys = {
       ["patients", "records", id, status] as const,
     recordVersions: (id: string, recordId: string) =>
       ["patients", "records", id, "versions", recordId] as const,
+    attachmentList: (id: string) => ["patients", "attachment-list", id] as const,
     attachmentDownload: (
       id: string,
       attachmentId: string,

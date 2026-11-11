@@ -133,14 +133,32 @@ test.describe("área logada", () => {
       }),
     ];
     await page.goto(`/pacientes/${josé}`);
-    await page.getByRole("button", { name: /ferida\.png/ }).click();
+    await expect(page.getByRole("region", { name: "Anexos", exact: true })).toContainText("2 anexos");
+    await expectNoViolations(page);
+
+    await page.getByRole("region", { name: "Histórico" }).getByRole("button", { name: /ferida\.png/ }).click();
     await expect(page.getByRole("img", { name: "Imagem: ferida.png" })).toBeVisible();
 
     await expectNoViolations(page);
   });
 
-  test("o diálogo de autorização de imagem não tem violações", async ({ page }) => {
+  test("a página de autorização de imagem não tem violações", async ({ page }) => {
+    await page.goto(`/pacientes/${josé}/autorizacoes`);
+    await expect(page.getByRole("button", { name: "Registrar autorização" })).toBeVisible();
+
+    await expectNoViolations(page);
+  });
+
+  test("os dados cadastrais recolhidos não têm violações", async ({ page }) => {
     await page.goto(`/pacientes/${josé}`);
+    await page.getByRole("button", { name: "Dados cadastrais" }).click();
+    await expect(page.getByRole("button", { name: "Dados cadastrais" })).toHaveAttribute("aria-expanded", "false");
+
+    await expectNoViolations(page);
+  });
+
+  test("o diálogo de autorização de imagem não tem violações", async ({ page }) => {
+    await page.goto(`/pacientes/${josé}/autorizacoes`);
     await page.getByRole("button", { name: "Registrar autorização" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
 

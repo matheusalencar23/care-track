@@ -12,9 +12,11 @@ import {
 import { RECORD_ATTACHMENTS_MAX } from "@/model/attachment";
 import { useId, useRef, useState, type DragEvent } from "react";
 import { FaPaperclip } from "react-icons/fa";
+import ConsentPageLink from "./consent-page-link";
 import UploadPreview, { canPreviewUpload } from "./upload-preview";
 
 interface Props {
+  patientId: string;
   uploads: AttachmentUpload[];
   disabled?: boolean;
   canAttachMedia?: boolean;
@@ -24,13 +26,8 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-export const CONSENT_SECTION_ANCHOR = "#patient-consent-title";
-
 const actionClassName =
   "cursor-pointer rounded-lg px-2 py-1 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
-
-const linkClassName =
-  "underline underline-offset-2 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 function statusLabel(upload: AttachmentUpload) {
   switch (upload.status) {
@@ -72,7 +69,9 @@ function UploadItem({
   onRetry,
   onRemove,
   onPreview,
+  patientId,
 }: {
+  patientId: string;
   upload: AttachmentUpload;
   onCancel: () => void;
   onRetry: () => void;
@@ -153,9 +152,9 @@ function UploadItem({
             {upload.needsConsent && (
               <>
                 {" "}
-                <a href={CONSENT_SECTION_ANCHOR} className={linkClassName}>
-                  Ir para a autorização de uso de imagem
-                </a>
+                <ConsentPageLink patientId={patientId}>
+                  Registrar a autorização de uso de imagem
+                </ConsentPageLink>
               </>
             )}
           </p>
@@ -167,6 +166,7 @@ function UploadItem({
 }
 
 export default function AttachmentUploader({
+  patientId,
   uploads,
   disabled = false,
   canAttachMedia,
@@ -243,9 +243,9 @@ export default function AttachmentUploader({
           {canAttachMedia === false && (
             <p className="text-warning-400">
               Fotos e vídeos exigem uma autorização de uso de imagem ativa.{" "}
-              <a href={CONSENT_SECTION_ANCHOR} className={linkClassName}>
+              <ConsentPageLink patientId={patientId}>
                 Registre a autorização
-              </a>{" "}
+              </ConsentPageLink>{" "}
               para anexá-los. PDFs podem ser anexados.
             </p>
           )}
@@ -269,6 +269,7 @@ export default function AttachmentUploader({
           {uploads.map((upload) => (
             <UploadItem
               key={upload.id}
+              patientId={patientId}
               upload={upload}
               onCancel={() => onCancel(upload.id)}
               onRetry={() => onRetry(upload.id)}
